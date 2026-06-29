@@ -23,6 +23,9 @@ type Config struct {
 
 	// CacheHitDelay simulates streaming cadence on cache hits (0 = minimal flush).
 	CacheHitDelay time.Duration
+
+	// EnablePprof exposes /debug/pprof for local profiling and leak audits.
+	EnablePprof bool
 }
 
 // Load reads configuration from environment variables with sensible defaults
@@ -39,6 +42,7 @@ func Load() Config {
 		EnableRedaction:     envBoolOr("KORTO_ENABLE_REDACTION", true),
 		EnableCompression:   envBoolOr("KORTO_ENABLE_COMPRESSION", true),
 		CacheHitDelay:       envDurationOr("KORTO_CACHE_HIT_DELAY_MS", 2*time.Millisecond),
+		EnablePprof:         envBoolOr("KORTO_ENABLE_PPROF", false),
 	}
 }
 

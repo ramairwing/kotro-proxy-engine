@@ -68,6 +68,20 @@ Cache hits return `X-KortoLabs-Cache: HIT`.
 | `KORTO_ENABLE_COMPRESSION` | `true` | Context deduplication |
 | `KORTO_CACHE_HIT_DELAY_MS` | `2` | Replay pacing on cache hits |
 
+## Cancel-storm leak audit (k6 + pprof)
+
+Verifies zero goroutine leak after mass mid-stream client disconnects.
+
+```bash
+brew install k6
+make cancel-audit
+
+# Full storm: 500 parallel agents for 30s
+K6_VUS=500 K6_DURATION=30s make cancel-audit
+```
+
+Requires `KORTO_ENABLE_PPROF=true` (set automatically by `run_audit.sh`). Pass criteria: post-stress goroutine count within ±5 of baseline.
+
 ## Benchmarks
 
 Install [k6](https://k6.io/): `brew install k6`

@@ -2,7 +2,9 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -53,6 +55,9 @@ func (p *streamPipeline) interceptResponse(resp *http.Response, rctx requestCont
 	pr, pw := io.Pipe()
 	origBody := resp.Body
 	resp.Body = pr
+	ctx := resp.Request.Context()
+
+	startPipeWatchdog(ctx, pw, origBody, p.logger)
 
 	go func() {
 		defer pw.Close()
@@ -68,7 +73,11 @@ func (p *streamPipeline) interceptResponse(resp *http.Response, rctx requestCont
 				break
 			}
 			if err != nil {
-				p.logger.Error("sse read error", "err", err, "format", rctx.format)
+				if ctx.Err() != nil {
+					p.logger.Debug("stream interception stopped", "err", ctx.Err(), "format", rctx.format)
+				} else {
+					p.logger.Error("sse read error", "err", err, "format", rctx.format)
+				}
 				break
 			}
 
@@ -86,11 +95,12 @@ func (p *streamPipeline) interceptResponse(resp *http.Response, rctx requestCont
 			}
 
 			if err := sse.WriteFrame(pw, clientFrame); err != nil {
+				p.logger.Debug("stream interception stopped: pipe writer closed", "err", err, "format", rctx.format)
 				return
 			}
 		}
 
-		if complete {
+		if complete && ctx.Err() == nil {
 			entry := cache.Entry{
 				Key:       rctx.cacheKey,
 				RawSSE:    captured.Bytes(),
@@ -108,28 +118,57 @@ func (p *streamPipeline) interceptResponse(resp *http.Response, rctx requestCont
 	return nil
 }
 
-func (p *streamPipeline) replayCached(w http.ResponseWriter, raw []byte, rm *guardrail.RedactionMap, format StreamFormat) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+// startPipeWatchdog closes the interception pipe when the request context ends.
+// CloseWithError unblocks any goroutine stuck in pw.Write; closing upstream releases
+// blocked Read calls in the SSE translation loop.
+func startPipeWatchdog(ctx context.Context, pw *io.PipeWriter, upstream io.ReadCloser, logger *slog.Logger) {
+	go func() {
+		<-ctx.Done()
+		err := ctx.Err()
+		if err == nil {
+			err = context.Canceled
+		}
+		if closeErr := pw.CloseWithError(err); closeErr != nil && !errors.Is(closeErr, io.ErrClosedPipe) {
+			logger.Debug("pipe watchdog close", "err", closeErr)
+		}
+		if upstream != nil {
+			_ = upstream.Close()
+		}
+	}()
+}
+
+func (p *streamPipeline) replayCached(ctx context.Context, w http.ResponseWriter, raw []byte, rm *guardrail.RedactionMap, format StreamFormat) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	setSSEHeaders(w)
 	w.Header().Set("X-KortoLabs-Cache", "HIT")
 	w.WriteHeader(http.StatusOK)
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
-		return
+	if _, err := w.Write([]byte(sseBootstrapComment)); err != nil {
+		p.logger.Debug("cache replay bootstrap write failed", "err", err)
+		return err
+	}
+	if err := flushResponse(w); err != nil {
+		p.logger.Debug("cache replay bootstrap flush failed", "err", err)
+		return err
 	}
 
 	reader := sse.NewReader(bytes.NewReader(raw))
 	for {
+		if err := ctx.Err(); err != nil {
+			p.logger.Debug("cache replay aborted: client disconnected", "err", err, "format", format)
+			return err
+		}
+
 		frame, err := reader.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			p.logger.Error("cache replay error", "err", err)
-			break
+			return err
 		}
 
 		out := frame
@@ -139,13 +178,26 @@ func (p *streamPipeline) replayCached(w http.ResponseWriter, raw []byte, rm *gua
 			})
 		}
 
-		_ = sse.WriteFrame(w, out)
-		flusher.Flush()
+		if err := sse.WriteFrame(w, out); err != nil {
+			p.logger.Debug("cache replay failed: write error", "err", err, "format", format)
+			return err
+		}
+		if err := flushResponse(w); err != nil {
+			p.logger.Debug("cache replay failed: network flush error", "err", err, "format", format)
+			return err
+		}
 
 		if p.opts.CacheHitDelay > 0 {
-			time.Sleep(p.opts.CacheHitDelay)
+			select {
+			case <-ctx.Done():
+				p.logger.Debug("cache replay aborted during pacing", "err", ctx.Err(), "format", format)
+				return ctx.Err()
+			case <-time.After(p.opts.CacheHitDelay):
+			}
 		}
 	}
+
+	return nil
 }
 
 func frameComplete(frame sse.Frame, format StreamFormat) bool {

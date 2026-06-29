@@ -1,4 +1,4 @@
-.PHONY: build test bench mock proxy run dev load-test clean
+.PHONY: build test bench mock proxy run dev load-test cancel-audit clean
 
 build: proxy mock
 
@@ -23,6 +23,9 @@ dev: build
 
 load-test: build
 	bash scripts/bench/run.sh $(SCENARIO)
+
+cancel-audit: build
+	bash benchmarks/run_audit.sh
 
 clean:
 	rm -rf bin/ kortolabs-cache.db

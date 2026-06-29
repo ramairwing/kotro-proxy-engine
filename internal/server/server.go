@@ -55,6 +55,9 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok","service":"kortolabs-proxy"}`))
 	})
+	if cfg.EnablePprof {
+		registerPprof(mux)
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.ListenAddr,
@@ -69,7 +72,7 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 
 func loggingMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" {
+		if r.URL.Path == "/healthz" || strings.HasPrefix(r.URL.Path, "/debug/pprof") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -91,6 +94,7 @@ func (s *Server) ListenAndServe() error {
 		"cache", s.cfg.EnableCache,
 		"redaction", s.cfg.EnableRedaction,
 		"compression", s.cfg.EnableCompression,
+		"pprof", s.cfg.EnablePprof,
 	)
 	return s.http.ListenAndServe()
 }
@@ -106,3 +110,6 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // Addr returns the configured listen address.
 func (s *Server) Addr() string { return s.cfg.ListenAddr }
+
+// HTTPHandler exposes the root mux for integration tests.
+func (s *Server) HTTPHandler() http.Handler { return s.http.Handler }

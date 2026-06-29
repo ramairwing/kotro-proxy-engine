@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -121,10 +123,8 @@ func handleAnthropicMessages(w http.ResponseWriter, r *http.Request) {
 
 func streamOpenAI(w http.ResponseWriter, flusher http.Flusher, model, userMsg string) {
 	reply := fmt.Sprintf("Mock upstream received: %s", truncate(userMsg, 80))
-	tokens := strings.Fields(reply)
-	if len(tokens) == 0 {
-		tokens = []string{"empty"}
-	}
+	tokens := expandTokens(strings.Fields(reply))
+	delay := chunkDelay()
 
 	for i, tok := range tokens {
 		chunk := map[string]any{
@@ -147,7 +147,7 @@ func streamOpenAI(w http.ResponseWriter, flusher http.Flusher, model, userMsg st
 		data, _ := json.Marshal(chunk)
 		fmt.Fprintf(w, "data: %s\n\n", data)
 		flusher.Flush()
-		time.Sleep(20 * time.Millisecond)
+		time.Sleep(delay)
 	}
 
 	fmt.Fprintf(w, "data: [DONE]\n\n")
@@ -174,10 +174,8 @@ func streamAnthropic(w http.ResponseWriter, flusher http.Flusher, model, userMsg
 	})
 
 	reply := fmt.Sprintf("Anthropic mock received: %s", truncate(userMsg, 80))
-	tokens := strings.Fields(reply)
-	if len(tokens) == 0 {
-		tokens = []string{"empty"}
-	}
+	tokens := expandTokens(strings.Fields(reply))
+	delay := chunkDelay()
 
 	for _, tok := range tokens {
 		writeSSE(w, flusher, "content_block_delta", map[string]any{
@@ -188,7 +186,7 @@ func streamAnthropic(w http.ResponseWriter, flusher http.Flusher, model, userMsg
 				"text": tok + " ",
 			},
 		})
-		time.Sleep(20 * time.Millisecond)
+		time.Sleep(delay)
 	}
 
 	writeSSE(w, flusher, "content_block_stop", map[string]any{
@@ -217,4 +215,30 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+func chunkDelay() time.Duration {
+	if v := os.Getenv("MOCK_CHUNK_DELAY_MS"); v != "" {
+		if ms, err := strconv.Atoi(v); err == nil && ms > 0 {
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+	return 20 * time.Millisecond
+}
+
+func expandTokens(tokens []string) []string {
+	if len(tokens) == 0 {
+		tokens = []string{"empty"}
+	}
+	min := 8
+	if v := os.Getenv("MOCK_MIN_CHUNKS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > min {
+			min = n
+		}
+	}
+	out := make([]string, 0, min)
+	for len(out) < min {
+		out = append(out, tokens...)
+	}
+	return out[:min]
 }

@@ -107,7 +107,7 @@ func (h *AnthropicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("cache get failed", "key", cache.EntryID(cacheKey), "err", err)
 		} else if entry != nil {
 			h.logger.Info("cache hit", "key", cache.EntryID(cacheKey), "format", StreamAnthropic)
-			h.pipeline.replayCached(w, entry.RawSSE, redactionMap, StreamAnthropic)
+			h.pipeline.replayCached(r.Context(), w, entry.RawSSE, redactionMap, StreamAnthropic)
 			return
 		}
 	}
@@ -135,7 +135,18 @@ func (h *AnthropicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.ContentLength = int64(len(newBody))
 	r.Header.Set("Content-Type", "application/json")
 
-	h.reverse.ServeHTTP(w, r)
+	out := w
+	if processed.Stream {
+		bw, err := bootstrapUpstreamSSE(w, h.logger)
+		if err != nil {
+			h.logger.Error("sse bootstrap failed", "err", err)
+			http.Error(w, "streaming connection failure", http.StatusInternalServerError)
+			return
+		}
+		out = bw
+	}
+
+	h.reverse.ServeHTTP(out, r)
 }
 
 func (h *AnthropicHandler) modifyResponse(resp *http.Response) error {
