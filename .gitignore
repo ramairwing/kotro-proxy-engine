@@ -1,0 +1,26 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test / coverage
+*.test
+*.out
+coverage.html
+
+# Go workspace
+/vendor/
+
+# Local runtime artifacts
+kortolabs-cache.db
+*.db
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*~
