@@ -6,12 +6,13 @@ use axum::Router;
 use tokio::signal;
 use tracing::info;
 
-use crate::cache::Store;
+use crate::cache::{start_eviction_worker, Store};
 use crate::config::Config;
 use crate::router::{build_http_client, create_router, open_store, AppState};
 
 pub struct Server {
     cfg: Config,
+    #[allow(dead_code)]
     store: Store,
     router: Router,
 }
@@ -19,6 +20,7 @@ pub struct Server {
 impl Server {
     pub fn new(cfg: Config) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let store = open_store(&cfg)?;
+        start_eviction_worker(store.clone(), cfg.eviction_interval);
         let client = build_http_client()?;
         let state = AppState::new(&cfg, store.clone(), client);
         let router = create_router(state);
@@ -45,6 +47,7 @@ impl Server {
             cache = self.cfg.enable_cache,
             redaction = self.cfg.enable_redaction,
             cache_ttl_secs = self.cfg.cache_ttl.as_secs(),
+            cache_eviction_secs = self.cfg.eviction_interval.as_secs(),
             "kortolabs proxy listening"
         );
 

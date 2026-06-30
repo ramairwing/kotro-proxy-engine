@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use redb::{Database, ReadableTable, TableDefinition, TableError};
+use redb::{Database, TableDefinition, TableError};
 use serde_json;
 use thiserror::Error;
 
@@ -12,7 +12,7 @@ use super::encoding::{decode_stored_value, encode_stored_value, expires_at_nano}
 use super::entry::Entry;
 
 /// Matches Go `bucketName = "sse_cache"`.
-const CACHE_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("sse_cache");
+pub(crate) const CACHE_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("sse_cache");
 
 #[derive(Debug, Clone)]
 pub struct StoreOptions {
@@ -157,7 +157,7 @@ impl Store {
         if self.ttl.is_zero() {
             return Ok(0);
         }
-        sweep_expired_keys(&self.db, now_unix_nano())
+        super::eviction::sweep_expired_retain(&self.db, now_unix_nano())
     }
 
     /// Configured entry lifetime (`Duration::ZERO` = no expiry).
@@ -168,6 +168,11 @@ impl Store {
     /// On-disk database file path.
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// Shared database handle for background eviction sweeps.
+    pub(crate) fn db_handle(&self) -> &Arc<Database> {
+        &self.db
     }
 }
 
@@ -190,54 +195,6 @@ fn delete_key(db: &Database, key: &str) -> Result<(), StoreError> {
     }
     write_txn.commit()?;
     Ok(())
-}
-
-fn sweep_expired_keys(db: &Database, now_nano: i64) -> Result<usize, StoreError> {
-    let keys = {
-        let read_txn = db.begin_read()?;
-        let table = match read_txn.open_table(CACHE_TABLE) {
-            Ok(t) => t,
-            Err(TableError::TableDoesNotExist(_)) => return Ok(0),
-            Err(e) => return Err(e.into()),
-        };
-
-        let mut stale = Vec::new();
-        for item in table.iter()? {
-            let (k, v) = item?;
-            let raw = v.value();
-            if raw.is_empty() || raw[0] == b'{' {
-                continue;
-            }
-            if raw.len() < super::encoding::EXPIRY_PREFIX_LEN {
-                continue;
-            }
-            let expires_at =
-                u64::from_be_bytes(raw[..super::encoding::EXPIRY_PREFIX_LEN].try_into().unwrap())
-                    as i64;
-            if expires_at > 0 && now_nano > expires_at {
-                stale.push(k.value().to_string());
-            }
-        }
-        stale
-    };
-
-    if keys.is_empty() {
-        return Ok(0);
-    }
-
-    let write_txn = db.begin_write()?;
-    let deleted = {
-        let mut table = write_txn.open_table(CACHE_TABLE)?;
-        let mut n = 0usize;
-        for key in &keys {
-            if table.remove(key.as_str())?.is_some() {
-                n += 1;
-            }
-        }
-        n
-    };
-    write_txn.commit()?;
-    Ok(deleted)
 }
 
 #[cfg(test)]
