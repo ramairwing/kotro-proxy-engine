@@ -56,3 +56,11 @@ Copy `homebrew/Formula/kortolabs-proxy.rb` into a `homebrew-tap` repository, rep
 ```bash
 brew install kortolabs/tap/kortolabs-proxy
 ```
+
+After a GitHub release completes, stamp checksums automatically:
+
+```bash
+scripts/update-homebrew-shas.sh v0.1.0
+# or
+make update-homebrew-shas VERSION=v0.1.0
+```

@@ -1,4 +1,4 @@
-.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit clean docker-build docker-up docker-down
+.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit update-homebrew-shas clean docker-build docker-up docker-down
 
 build: proxy mock
 
@@ -41,6 +41,9 @@ rust-cancel-audit:
 
 # Run both audits sequentially (never in parallel — they share :8080/:9000).
 audit: cancel-audit rust-cancel-audit
+
+update-homebrew-shas:
+	bash scripts/update-homebrew-shas.sh $(VERSION)
 
 clean:
 	rm -rf bin/ kortolabs-cache.db benchmarks/.audit-logs
