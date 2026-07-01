@@ -1,7 +1,7 @@
-out
 node_modules
 .vscode/**
 src/**
 tsconfig.json
 .gitignore
 **/*.map
+package-lock.json
