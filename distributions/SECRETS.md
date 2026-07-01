@@ -9,7 +9,27 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 **Publisher:** `kortosystems` — [Manage publisher](https://marketplace.visualstudio.com/manage/publishers/kortosystems)
 
-## VSCE_PAT (Marketplace publish token)
+## VSCE_PAT — when you need it (and when you don't)
+
+| Goal | VSCE_PAT required? |
+|------|-------------------|
+| **Manual upload** of `.vsix` on Marketplace web UI | **No** |
+| **`vsce publish`** in CI or terminal | **Yes** |
+| **`vsce login`** to verify publisher | **Yes** |
+
+**Fastest path without Azure subscription:** build `.vsix` locally and drag it into  
+[marketplace.visualstudio.com/manage/publishers/kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)  
+→ **New extension** → upload file. Public install counter starts immediately.
+
+```bash
+# After downloading the 4 CI binaries into a folder:
+make package-extension ARTIFACTS_DIR=~/Downloads/artifacts
+# Upload: kortolabs-proxy-engine.vsix
+```
+
+Only pursue `VSCE_PAT` below if you want **fully automated** `vsce publish` in GitHub Actions.
+
+## VSCE_PAT (automated CI publish only)
 
 The URL `dev.azure.com/_users/settings/tokens` often returns **404**. Use one of these paths instead:
 

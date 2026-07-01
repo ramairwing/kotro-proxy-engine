@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver for packaging (without v prefix)'
+        required: false
+        default: '0.1.0'
 
 permissions:
   contents: write
@@ -95,11 +100,19 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
           else
-            VERSION="0.0.0-dev.${GITHUB_RUN_NUMBER}"
+            VERSION="0.1.0-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          # npm version requires valid semver
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid semver: $VERSION" >&2
+            exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Release version: $VERSION"
+          echo "is_tag=$([ '${{ github.ref_type }}' = 'tag' ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Download compiled binaries
         uses: actions/download-artifact@v4
@@ -152,8 +165,17 @@ jobs:
           npm run compile
           npx @vscode/vsce@latest package --no-dependencies -o ../../release-assets/kortolabs-proxy-engine.vsix
 
+      - name: Upload VSIX artifact (manual dispatch)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kortolabs-proxy-engine-vsix
+          path: release-assets/kortolabs-proxy-engine.vsix
+          if-no-files-found: error
+
       - name: Publish to npm
         if: github.ref_type == 'tag'
+        continue-on-error: true
         working-directory: distributions/npm-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -166,6 +188,7 @@ jobs:
 
       - name: Publish to VS Code Marketplace
         if: github.ref_type == 'tag'
+        continue-on-error: true
         working-directory: distributions/vscode-extension
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
