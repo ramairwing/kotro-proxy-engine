@@ -1,4 +1,4 @@
-.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit clean
+.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit clean docker-build docker-up docker-down
 
 build: proxy mock
 
@@ -44,3 +44,12 @@ audit: cancel-audit rust-cancel-audit
 
 clean:
 	rm -rf bin/ kortolabs-cache.db benchmarks/.audit-logs
+
+docker-build:
+	docker-compose build
+
+docker-up:
+	docker-compose up
+
+docker-down:
+	docker-compose down

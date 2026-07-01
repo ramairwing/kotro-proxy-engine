@@ -1,0 +1,14 @@
+.git
+.gitignore
+bin/
+rust/target/
+kortolabs-cache.db
+*.db
+benchmarks/.audit-logs/
+.idea/
+.vscode/
+.DS_Store
+*.md
+docs/
+scripts/bench/
+agent-transcripts/
