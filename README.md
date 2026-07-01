@@ -26,7 +26,7 @@ Korto fills the gap between local agent runtimes (Cursor, Claude Code, custom SD
 |---------|---------|
 | **Docker** | `docker-compose up` (mock upstream + Rust proxy) |
 | **npm** | `npm install -g @kortosystems/proxy-engine` → `kortolabs-proxy` |
-| **Homebrew** | `brew tap ramairwing/tap && brew install kortolabs-proxy` |
+| **Homebrew** | `brew tap ramairwing/tap && brew trust ramairwing/tap && brew install kortolabs-proxy` |
 | **VS Code / Cursor** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine) (IDE sidecar on `:8080`) |
 | **GitHub Release** | [Download binary](https://github.com/ramairwing/kotro-proxy-engine/releases) for your platform |
 | **From source** | `make build` or `cd rust && cargo run -p korto-proxy` |
