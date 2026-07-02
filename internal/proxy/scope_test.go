@@ -39,6 +39,30 @@ func TestScopeFromRequestIgnoresSpoofedHeaders(t *testing.T) {
 	}
 }
 
+func TestIsTrustedPeer_RejectsSpoofedXFF(t *testing.T) {
+	networks := mustParseCIDRs(t, "10.0.0.0/8")
+
+	req := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	req.Header.Set("X-Forwarded-For", "10.0.0.5")
+	req.RemoteAddr = "192.168.1.100:443"
+
+	if isTrustedPeer(req, networks) {
+		t.Fatal("SECURITY FAILURE: trusted peer check must not use spoofed X-Forwarded-For headers")
+	}
+}
+
+func TestIsTrustedPeer_AcceptsTrustedSocketDespiteSpoofedXFF(t *testing.T) {
+	networks := mustParseCIDRs(t, "10.0.0.0/8")
+
+	req := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.50")
+	req.RemoteAddr = "10.0.1.50:443"
+
+	if !isTrustedPeer(req, networks) {
+		t.Fatal("trusted peer check must authorize based on socket RemoteAddr")
+	}
+}
+
 func TestScopeFromRequestHashesBearerToken(t *testing.T) {
 	req := httptest.NewRequest("POST", "/v1/chat/completions", nil)
 	req.Header.Set("Authorization", "Bearer secret-token")

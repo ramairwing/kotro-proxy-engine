@@ -37,6 +37,7 @@ impl ScopeResolver {
     }
 
     fn is_trusted_peer(&self, peer: IpAddr) -> bool {
+        // Socket address from ConnectInfo only — never HTTP forwarding headers.
         self.trusted_proxy_cidrs
             .iter()
             .any(|cidr| cidr.contains(&peer))

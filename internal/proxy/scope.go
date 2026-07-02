@@ -81,33 +81,32 @@ func hashCredential(value string) string {
 }
 
 func (sr ScopeResolver) isTrustedPeer(r *http.Request) bool {
-	if len(sr.TrustedProxyCIDRs) == 0 {
+	return isTrustedPeer(r, sr.TrustedProxyCIDRs)
+}
+
+// isTrustedPeer validates the TCP socket origin only — never HTTP headers such as
+// X-Forwarded-For, which untrusted clients can forge on public edge deployments.
+func isTrustedPeer(r *http.Request, trustedCIDRs []*net.IPNet) bool {
+	if len(trustedCIDRs) == 0 {
 		return false
 	}
-	ip := clientIP(r)
-	if ip == nil {
+
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+
+	parsedIP := net.ParseIP(strings.TrimSpace(host))
+	if parsedIP == nil {
 		return false
 	}
-	for _, cidr := range sr.TrustedProxyCIDRs {
-		if cidr.Contains(ip) {
+
+	for _, cidr := range trustedCIDRs {
+		if cidr.Contains(parsedIP) {
 			return true
 		}
 	}
 	return false
-}
-
-func clientIP(r *http.Request) net.IP {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		host := strings.TrimSpace(strings.Split(xff, ",")[0])
-		if ip := net.ParseIP(host); ip != nil {
-			return ip
-		}
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return net.ParseIP(r.RemoteAddr)
-	}
-	return net.ParseIP(host)
 }
 
 func parseTrustedCIDRs(raw string) ([]*net.IPNet, error) {
