@@ -53,4 +53,13 @@ func TestDashboardPageAndAPI(t *testing.T) {
 	if err := json.Unmarshal(api.Body.Bytes(), &payload); err != nil {
 		t.Fatal(err)
 	}
+
+	icon := httptest.NewRecorder()
+	srv.MetricsHTTPHandler().ServeHTTP(icon, httptest.NewRequest(http.MethodGet, "/favicon.ico", nil))
+	if icon.Code != http.StatusOK {
+		t.Fatalf("favicon status %d", icon.Code)
+	}
+	if ct := icon.Header().Get("Content-Type"); ct != "image/png" {
+		t.Fatalf("favicon content-type %q", ct)
+	}
 }

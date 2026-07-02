@@ -1,5 +1,9 @@
 # KortoLabs Proxy Engine
 
+<p align="center">
+  <img src="media/icon.png" alt="Korto" width="96" height="96" />
+</p>
+
 Transparent **IDE sidecar** for the [Kotro Proxy Engine](https://github.com/ramairwing/kotro-proxy-engine) — a local LLM gateway with streaming semantic cache, PII redaction, and context compression for **OpenAI** and **Anthropic** APIs.
 
 Works in **VS Code**, **Cursor**, and other VS Code–compatible editors.

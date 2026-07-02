@@ -1,4 +1,4 @@
-.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit eval-suite update-homebrew-shas post-release-homebrew go-live package-extension clean docker-build docker-up docker-down
+.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit eval-suite update-homebrew-shas post-release-homebrew go-live package-extension sync-brand-icon clean docker-build docker-up docker-down
 
 build: proxy mock
 
@@ -56,6 +56,9 @@ go-live:
 
 package-extension:
 	bash scripts/package-extension-local.sh $(ARTIFACTS_DIR)
+
+sync-brand-icon:
+	bash scripts/sync-brand-icon.sh
 
 clean:
 	rm -rf bin/ kortolabs-cache.db benchmarks/.audit-logs

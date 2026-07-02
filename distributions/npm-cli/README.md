@@ -1,5 +1,9 @@
 # @kortosystems/proxy-engine
 
+<p align="center">
+  <img src="media/icon.png" alt="Korto" width="72" height="72" />
+</p>
+
 npm distribution for the [Korto Proxy Engine](https://github.com/ramairwing/kotro-proxy-engine) — a local AI reverse proxy with streaming semantic cache, PII redaction, and context compression for OpenAI and Anthropic SDKs.
 
 ## Install
