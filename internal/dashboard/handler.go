@@ -12,6 +12,9 @@ import (
 //go:embed page.html
 var pageHTML []byte
 
+//go:embed icon.png
+var iconPNG []byte
+
 // Handler serves dashboard routes when metrics are enabled.
 type Handler struct {
 	metrics *metrics.Registry
@@ -29,12 +32,21 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("/dashboard", h.servePage)
 	mux.HandleFunc("/api/dashboard", h.serveAPI)
+	mux.HandleFunc("/favicon.ico", h.serveIcon)
+	mux.HandleFunc("/dashboard/icon.png", h.serveIcon)
 }
 
 func (h *Handler) servePage(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pageHTML)
+}
+
+func (h *Handler) serveIcon(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(iconPNG)
 }
 
 func (h *Handler) serveAPI(w http.ResponseWriter, _ *http.Request) {

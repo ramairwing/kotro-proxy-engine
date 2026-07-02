@@ -14,6 +14,7 @@
   },
   "files": [
     "README.md",
+    "media/icon.png",
     "bin/index.js",
     "lib/binary-target.js",
     "bin/korto-proxy-*"

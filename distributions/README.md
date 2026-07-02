@@ -4,7 +4,9 @@ Packaging for three install surfaces lives under `distributions/` so the engine 
 
 ```
 distributions/
-├── shared/binary-target.js     # Platform → release asset name (single source of truth)
+├── shared/
+│   ├── binary-target.js     # Platform → release asset name (single source of truth)
+│   └── media/icon.png       # Canonical 128×128 brand icon (sync via make sync-brand-icon)
 ├── SECRETS.md                  # NPM_TOKEN + VSCE_PAT setup for CI publish
 ├── vscode-extension/           # Cursor / VS Code IDE sidecar
 ├── npm-cli/                    # npm install -g @kortosystems/proxy-engine
@@ -68,3 +70,11 @@ make update-homebrew-shas VERSION=v0.1.0
 ```
 
 Copy the stamped tap formula into `github.com/ramairwing/homebrew-tap` — see [homebrew-tap/README.md](homebrew-tap/README.md).
+
+## Brand icon
+
+Canonical asset: `shared/media/icon.png` (128×128 PNG). After updating the icon, propagate to all channels:
+
+```bash
+make sync-brand-icon
+```

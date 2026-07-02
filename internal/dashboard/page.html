@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kotro Proxy Dashboard</title>
+  <link rel="icon" href="/favicon.ico" type="image/png" sizes="128x128" />
   <style>
     :root {
       color-scheme: dark;
@@ -33,6 +34,17 @@
       align-items: center;
       gap: 1rem;
       flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: block;
     }
     h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
     .sub { color: var(--muted); font-size: 0.85rem; }
@@ -80,9 +92,12 @@
 </head>
 <body>
   <header>
-    <div>
-      <h1>Kotro Proxy Dashboard</h1>
-      <div class="sub">Local sidecar observability · refreshes every 5s</div>
+    <div class="brand">
+      <img src="/dashboard/icon.png" alt="Kotro" width="32" height="32" />
+      <div>
+        <h1>Kotro Proxy Dashboard</h1>
+        <div class="sub">Local sidecar observability · refreshes every 5s</div>
+      </div>
     </div>
     <div class="links sub">
       <a href="/metrics">Prometheus</a>

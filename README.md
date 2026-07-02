@@ -1,5 +1,9 @@
 # Korto Proxy Engine
 
+<p align="center">
+  <img src="distributions/shared/media/icon.png" alt="Korto" width="96" height="96" />
+</p>
+
 [![CI](https://github.com/ramairwing/kotro-proxy-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/ramairwing/kotro-proxy-engine/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/ramairwing/kotro-proxy-engine)](https://github.com/ramairwing/kotro-proxy-engine/releases)
 [![npm](https://img.shields.io/npm/v/@kortosystems/proxy-engine)](https://www.npmjs.com/package/@kortosystems/proxy-engine)
