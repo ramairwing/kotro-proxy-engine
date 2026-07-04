@@ -117,6 +117,9 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamU
 		req := &models.ChatCompletionRequest{
 			Model:  model,
 			Stream: true, // Must stream for proxy to intercept!
+			StreamOpts: &models.StreamOptions{
+				IncludeUsage: true,
+			},
 		}
 		
 		// Build payload like a sloppy IDE
@@ -138,6 +141,14 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamU
 		resp, err := client.Do(httpReq)
 		if err != nil {
 			fmt.Printf("Request failed: %v\n", err)
+			return
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("API Error (HTTP %d):\n", resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Printf("Body: %s\n", string(body))
+			resp.Body.Close()
 			return
 		}
 

@@ -1,42 +1,82 @@
 # Proxy Benchmark Results
 
-## Scenario A: Full Digest
+## Scenario A: DeepSeek Full Digest
 
 ### Turn 1
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2042
-- **DeepSeek Cache Hits**: 0
-- **DeepSeek Cache Misses**: 2042
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 
 ### Turn 2
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2061
-- **DeepSeek Cache Hits**: 1920
-- **DeepSeek Cache Misses**: 141
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 
 ### Turn 3
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2079
-- **DeepSeek Cache Hits**: 1920
-- **DeepSeek Cache Misses**: 159
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 
-## Scenario B: Window N
+## Scenario B: DeepSeek Window N
 
 ### Turn 1
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2042
-- **DeepSeek Cache Hits**: 1920
-- **DeepSeek Cache Misses**: 122
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 
 ### Turn 2
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2061
-- **DeepSeek Cache Hits**: 2048
-- **DeepSeek Cache Misses**: 13
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 
 ### Turn 3
 - **Local Proxy Status**: 🔴 MISS
-- **DeepSeek Prompt Tokens**: 2079
-- **DeepSeek Cache Hits**: 2048
-- **DeepSeek Cache Misses**: 31
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+## Scenario C: Qwen Full Digest
+
+### Turn 1
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+### Turn 2
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+### Turn 3
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+## Scenario D: Qwen Window N
+
+### Turn 1
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+### Turn 2
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
+
+### Turn 3
+- **Local Proxy Status**: 🔴 MISS
+- **Server Prompt Tokens**: 0
+- **Server Cache Hits**: 0
+- **Server Cache Misses**: 0
 

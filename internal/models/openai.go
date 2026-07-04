@@ -13,9 +13,15 @@ import (
 type ChatCompletionRequest struct {
 	Model       string        `json:"model"`
 	Messages    []ChatMessage `json:"messages"`
-	Stream      bool          `json:"stream"`
-	Temperature *float64      `json:"temperature,omitempty"`
-	MaxTokens   *int          `json:"max_tokens,omitempty"`
+	Stream      bool           `json:"stream"`
+	StreamOpts  *StreamOptions `json:"stream_options,omitempty"`
+	Temperature *float64       `json:"temperature,omitempty"`
+	MaxTokens   *int           `json:"max_tokens,omitempty"`
+}
+
+// StreamOptions configures stream telemetry.
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage,omitempty"`
 }
 
 // ChatMessage represents a single turn in the conversation array.
