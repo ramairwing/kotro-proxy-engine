@@ -24,6 +24,10 @@ benchmarks/.audit-logs/
 benchmarks/eval-suite/.runs/
 benchmarks/eval-suite/.last-run.json
 
+# Environment variables
+.env
+.env.*
+
 # IDE / OS
 .idea/
 .vscode/
