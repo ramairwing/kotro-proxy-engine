@@ -20,14 +20,16 @@ import (
 )
 
 func main() {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
-		fmt.Println("Error: DEEPSEEK_API_KEY is required in environment.")
+	deepseekKey := os.Getenv("DEEPSEEK_API_KEY")
+	dashscopeKey := os.Getenv("DASHSCOPE_API_KEY")
+	
+	if deepseekKey == "" && dashscopeKey == "" {
+		fmt.Println("Error: DEEPSEEK_API_KEY or DASHSCOPE_API_KEY is required in environment.")
 		os.Exit(1)
 	}
 
-	fmt.Println("DeepSeek V4 + Proxy Coordinated Cache Evaluation")
-	fmt.Println("================================================")
+	fmt.Println("Coordinated Cache Evaluation (DeepSeek & Qwen)")
+	fmt.Println("==================================================")
 
 	out, err := os.OpenFile("benchmarks/eval-suite/RESULTS.md", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -44,11 +46,21 @@ func main() {
 	}
 	codeDump := fmt.Sprintf("<file name=\"core.go\">\npackage core\n\n%s\n</file>", strings.Repeat("// complex logic simulation loop\nfunc mock() {}\n", 200))
 
-	fmt.Println("Running Scenario A: Full Digest Strategy")
-	runScenario(apiKey, "Scenario A: Full Digest", cache.StrategyFullDigest, system, codeDump, out)
+	if deepseekKey != "" {
+		fmt.Println("Running Scenario A: DeepSeek Full Digest Strategy")
+		runScenario(deepseekKey, "Scenario A: DeepSeek Full Digest", cache.StrategyFullDigest, "https://api.deepseek.com", "deepseek-chat", system, codeDump, out)
 
-	fmt.Println("\nRunning Scenario B: Window N Strategy")
-	runScenario(apiKey, "Scenario B: Window N", cache.StrategyWindowN, system, codeDump, out)
+		fmt.Println("\nRunning Scenario B: DeepSeek Window N Strategy")
+		runScenario(deepseekKey, "Scenario B: DeepSeek Window N", cache.StrategyWindowN, "https://api.deepseek.com", "deepseek-chat", system, codeDump, out)
+	}
+
+	if dashscopeKey != "" {
+		fmt.Println("\nRunning Scenario C: Qwen Full Digest Strategy")
+		runScenario(dashscopeKey, "Scenario C: Qwen Full Digest", cache.StrategyFullDigest, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus", system, codeDump, out)
+
+		fmt.Println("\nRunning Scenario D: Qwen Window N Strategy")
+		runScenario(dashscopeKey, "Scenario D: Qwen Window N", cache.StrategyWindowN, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "qwen-plus", system, codeDump, out)
+	}
 }
 
 func mustFlexText(text string) models.FlexContent {
@@ -58,7 +70,7 @@ func mustFlexText(text string) models.FlexContent {
 	return fc
 }
 
-func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, system models.ChatMessage, codeDump string, out io.Writer) {
+func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamURL, model string, system models.ChatMessage, codeDump string, out io.Writer) {
 	// 1. Setup local proxy
 	storePath := os.TempDir() + "/korto-eval-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
 	store, _ := cache.Open(storePath)
@@ -67,7 +79,7 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, system mo
 	registry := metrics.NewRegistry()
 
 	opts := proxy.Options{
-		UpstreamURL:       "https://api.deepseek.com",
+		UpstreamURL:       upstreamURL,
 		EnableCache:       true,
 		EnableRedaction:   false,
 		EnableCompression: false, // Testing just semantic caching
@@ -103,7 +115,7 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, system mo
 		query := queries[turn-1]
 		
 		req := &models.ChatCompletionRequest{
-			Model:  "deepseek-chat",
+			Model:  model,
 			Stream: true, // Must stream for proxy to intercept!
 		}
 		
@@ -163,8 +175,8 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, system mo
 		} else {
 			out.Write([]byte("- **Local Proxy Status**: 🔴 MISS\n"))
 		}
-		out.Write([]byte(fmt.Sprintf("- **DeepSeek Prompt Tokens**: %d\n", usage.PromptTokens)))
-		out.Write([]byte(fmt.Sprintf("- **DeepSeek Cache Hits**: %d\n", usage.PromptCacheHitTokens)))
-		out.Write([]byte(fmt.Sprintf("- **DeepSeek Cache Misses**: %d\n\n", usage.PromptCacheMissTokens)))
+		out.Write([]byte(fmt.Sprintf("- **Server Prompt Tokens**: %d\n", usage.PromptTokens)))
+		out.Write([]byte(fmt.Sprintf("- **Server Cache Hits**: %d\n", usage.PromptCacheHitTokens)))
+		out.Write([]byte(fmt.Sprintf("- **Server Cache Misses**: %d\n\n", usage.PromptCacheMissTokens)))
 	}
 }
