@@ -164,6 +164,9 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamU
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
 			line := scanner.Text()
+			// DEBUG PRINT
+			fmt.Printf("[DEBUG] %s\n", line)
+			
 			if strings.HasPrefix(line, "data: ") {
 				data := line[6:]
 				if data == "[DONE]" {
