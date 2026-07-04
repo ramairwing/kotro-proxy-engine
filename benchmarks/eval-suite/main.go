@@ -152,6 +152,14 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamU
 			return
 		}
 
+		if !strings.Contains(resp.Header.Get("Content-Type"), "text/event-stream") {
+			fmt.Printf("Unexpected Content-Type: %s\n", resp.Header.Get("Content-Type"))
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Printf("Body: %s\n", string(body))
+			resp.Body.Close()
+			return
+		}
+
 		var usage models.DeepSeekUsage
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
