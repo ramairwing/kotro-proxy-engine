@@ -632,6 +632,7 @@ dependencies = [
  "hyper",
  "ipnet",
  "moka",
+ "parking_lot",
  "prometheus",
  "redb",
  "regex",

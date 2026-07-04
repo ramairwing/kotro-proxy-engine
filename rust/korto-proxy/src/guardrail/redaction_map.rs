@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 #[derive(Debug, Default)]
 pub struct RedactionMap {
@@ -17,26 +17,24 @@ impl RedactionMap {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.forward.read().unwrap().is_empty()
+        self.forward.read().is_empty()
     }
 
     pub fn len(&self) -> usize {
-        self.forward.read().unwrap().len()
+        self.forward.read().len()
     }
 
     pub fn placeholder_for(&self, original: &str) -> String {
-        if let Some(ph) = self.reverse.read().unwrap().get(original) {
+        if let Some(ph) = self.reverse.read().get(original) {
             return ph.clone();
         }
         let n = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
         let placeholder = format!("[REDACTED_SECRET_{n}]");
         self.forward
             .write()
-            .unwrap()
             .insert(placeholder.clone(), original.to_string());
         self.reverse
             .write()
-            .unwrap()
             .insert(original.to_string(), placeholder.clone());
         placeholder
     }
@@ -47,14 +45,13 @@ impl RedactionMap {
         let original = original.into();
         self.forward
             .write()
-            .unwrap()
             .insert(placeholder.clone(), original.clone());
-        self.reverse.write().unwrap().insert(original, placeholder);
+        self.reverse.write().insert(original, placeholder);
     }
 
     /// Reverses placeholder masking on inbound streaming text.
     pub fn restore(&self, text: &str) -> String {
-        let map = self.forward.read().unwrap();
+        let map = self.forward.read();
         if map.is_empty() {
             return text.to_string();
         }
@@ -134,7 +131,7 @@ fn restore_anthropic_delta(payload: &[u8], map: &RedactionMap) -> (Vec<u8>, usiz
 }
 
 fn restore_counted(text: &str, map: &RedactionMap) -> (String, usize) {
-    let forward = map.forward.read().unwrap();
+    let forward = map.forward.read();
     if forward.is_empty() {
         return (text.to_string(), 0);
     }

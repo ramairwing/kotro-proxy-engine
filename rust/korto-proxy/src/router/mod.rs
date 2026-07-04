@@ -102,6 +102,7 @@ pub fn open_store(cfg: &Config) -> Result<Store, crate::cache::StoreError> {
         StoreOptions {
             ttl: cfg.cache_ttl,
             enable_compression: cfg.enable_compression,
+            max_capacity: None,
         },
     )
 }

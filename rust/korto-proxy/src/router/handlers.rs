@@ -14,6 +14,7 @@ use axum::{
 use bytes::Bytes;
 use futures_util::StreamExt;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+use serde::Serialize;
 use serde_json::Value;
 use std::time::Instant;
 use tracing::{error, info};
@@ -25,6 +26,30 @@ use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest};
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
 use crate::proxy::replay::create_cached_replay_stream;
 use crate::router::AppState;
+
+const UPSTREAM_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+#[derive(Serialize)]
+struct ProblemDetails {
+    #[serde(rename = "type")]
+    pub problem_type: String,
+    pub title: String,
+    pub status: u16,
+    pub detail: String,
+}
+
+fn problem_response(status: StatusCode, title: &str, detail: &str) -> Response {
+    let pd = ProblemDetails {
+        problem_type: "https://docs.kortolabs.com/errors".to_string(),
+        title: title.to_string(),
+        status: status.as_u16(),
+        detail: detail.to_string(),
+    };
+    let mut response = Json(pd).into_response();
+    *response.status_mut() = status;
+    response.headers_mut().insert(CONTENT_TYPE, HeaderValue::from_static("application/problem+json"));
+    response
+}
 
 
 const SSE_HEADERS: [(&str, &str); 4] = [
@@ -161,9 +186,9 @@ fn create_primed_miss_stream(
         );
 
         let start_upstream = Instant::now();
-        let upstream_response = match upstream_req.send().await {
-            Ok(resp) => resp,
-            Err(err) => {
+        let upstream_response = match tokio::time::timeout(UPSTREAM_TIMEOUT, upstream_req.send()).await {
+            Ok(Ok(resp)) => resp,
+            Ok(Err(err)) => {
                 error!(error = %err, "upstream network failure");
                 state.metrics.record_error(
                     match pipeline_opts.format {
@@ -173,6 +198,19 @@ fn create_primed_miss_stream(
                     "upstream",
                 );
                 let err_msg = format!("data: {{\"error\": \"Upstream network failure: {err}\"}}\n\n");
+                yield Bytes::from(err_msg);
+                return;
+            }
+            Err(_) => {
+                error!("upstream network timeout");
+                state.metrics.record_error(
+                    match pipeline_opts.format {
+                        StreamFormat::OpenAI => "openai",
+                        StreamFormat::Anthropic => "anthropic",
+                    },
+                    "timeout",
+                );
+                let err_msg = "data: {\"error\": \"Gateway timeout: Upstream provider did not respond in time\"}\n\n".to_string();
                 yield Bytes::from(err_msg);
                 return;
             }
@@ -227,7 +265,7 @@ pub async fn handle_chat_completions(
         Ok(req) => req,
         Err(err) => {
             state.metrics.record_error("openai", "parse");
-            return (StatusCode::BAD_REQUEST, format!("invalid json: {err}")).into_response();
+            return problem_response(StatusCode::BAD_REQUEST, "Invalid Request", &format!("invalid json: {err}"));
         }
     };
 
@@ -292,7 +330,7 @@ pub async fn handle_messages(
         Ok(req) => req,
         Err(err) => {
             state.metrics.record_error("anthropic", "parse");
-            return (StatusCode::BAD_REQUEST, format!("invalid json: {err}")).into_response();
+            return problem_response(StatusCode::BAD_REQUEST, "Invalid Request", &format!("invalid json: {err}"));
         }
     };
 
@@ -354,7 +392,7 @@ pub async fn handle_passthrough(State(state): State<Arc<AppState>>, req: Request
     let body = match axum::body::to_bytes(req.into_body(), 10 * 1024 * 1024).await {
         Ok(bytes) => bytes,
         Err(err) => {
-            return (StatusCode::BAD_REQUEST, format!("read body: {err}")).into_response();
+            return problem_response(StatusCode::BAD_REQUEST, "Invalid Request", &format!("read body: {err}"));
         }
     };
 
@@ -368,11 +406,15 @@ pub async fn handle_passthrough(State(state): State<Arc<AppState>>, req: Request
         &headers,
     );
 
-    match upstream_req.send().await {
-        Ok(resp) => proxy_response(resp).await,
-        Err(err) => {
+    match tokio::time::timeout(UPSTREAM_TIMEOUT, upstream_req.send()).await {
+        Ok(Ok(resp)) => proxy_response(resp).await,
+        Ok(Err(err)) => {
             error!(error = %err, "passthrough upstream error");
-            (StatusCode::BAD_GATEWAY, "upstream unavailable").into_response()
+            problem_response(StatusCode::BAD_GATEWAY, "Upstream Error", "upstream unavailable")
+        }
+        Err(_) => {
+            error!("passthrough upstream timeout");
+            problem_response(StatusCode::GATEWAY_TIMEOUT, "Gateway Timeout", "upstream timeout")
         }
     }
 }
@@ -503,16 +545,25 @@ async fn forward_provider(
     );
 
     let start_upstream = Instant::now();
-    let upstream_response = match upstream_req.send().await {
-        Ok(resp) => resp,
-        Err(err) => {
+    let upstream_response = match tokio::time::timeout(UPSTREAM_TIMEOUT, upstream_req.send()).await {
+        Ok(Ok(resp)) => resp,
+        Ok(Err(err)) => {
             error!(error = %err, "upstream network failure");
             state.metrics.record_error(provider, "upstream");
-            return (
+            return problem_response(
                 StatusCode::BAD_GATEWAY,
-                format!("Upstream network failure: {err}"),
-            )
-                .into_response();
+                "Upstream Error",
+                &format!("Upstream network failure: {err}")
+            );
+        }
+        Err(_) => {
+            error!("upstream network timeout");
+            state.metrics.record_error(provider, "timeout");
+            return problem_response(
+                StatusCode::GATEWAY_TIMEOUT,
+                "Gateway Timeout",
+                "Upstream provider did not respond in time"
+            );
         }
     };
 

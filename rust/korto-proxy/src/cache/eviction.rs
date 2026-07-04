@@ -2,7 +2,7 @@
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use redb::{Database, TableError};
+use redb::{Database, TableError, ReadableTable, ReadableTableMetadata};
 use tokio::time::interval;
 use tracing::{error, info};
 
@@ -31,8 +31,9 @@ fn now_unix_nano() -> i64 {
         .as_nanos() as i64
 }
 
-/// Sweeps stale keys in a single write transaction via redb's in-place `.retain()` filter.
-pub fn sweep_expired_retain(db: &Database, now_nano: i64) -> Result<usize, StoreError> {
+/// Sweeps stale keys in a single write transaction via redb's in-place `.retain()` filter,
+/// and enforces max capacity bounds.
+pub fn sweep_stale(db: &Database, now_nano: i64, max_capacity: Option<usize>) -> Result<usize, StoreError> {
     let write_txn = db.begin_write()?;
     let deleted = {
         let mut table = match write_txn.open_table(CACHE_TABLE) {
@@ -49,6 +50,27 @@ pub fn sweep_expired_retain(db: &Database, now_nano: i64) -> Result<usize, Store
             }
             keep
         })?;
+
+        if let Some(capacity) = max_capacity {
+            let len = table.len()? as usize;
+            if len > capacity {
+                let to_drop = len - capacity;
+                let mut keys_to_remove = Vec::with_capacity(to_drop);
+                for (i, entry) in table.iter()?.enumerate() {
+                    if i >= to_drop {
+                        break;
+                    }
+                    if let Ok((k, _v)) = entry {
+                        keys_to_remove.push(k.value().to_string());
+                    }
+                }
+                for k in keys_to_remove {
+                    table.remove(k.as_str())?;
+                    deleted += 1;
+                }
+            }
+        }
+
         deleted
     };
     write_txn.commit()?;
@@ -57,7 +79,7 @@ pub fn sweep_expired_retain(db: &Database, now_nano: i64) -> Result<usize, Store
 
 /// Spawns a periodic eviction loop until the tokio runtime shuts down.
 pub fn start_eviction_worker(store: Store, sweep_interval: Duration) {
-    if store.ttl().is_zero() || sweep_interval.is_zero() {
+    if (store.ttl().is_zero() && store.max_capacity().is_none()) || sweep_interval.is_zero() {
         return;
     }
 
@@ -67,7 +89,7 @@ pub fn start_eviction_worker(store: Store, sweep_interval: Duration) {
 
         loop {
             ticker.tick().await;
-            match sweep_expired_retain(store.db_handle(), now_unix_nano()) {
+            match sweep_stale(store.db_handle(), now_unix_nano(), store.max_capacity()) {
                 Ok(0) => {}
                 Ok(deleted) => info!(deleted, "cache eviction sweep"),
                 Err(err) => error!(error = %err, "cache eviction sweep failed"),
@@ -128,7 +150,7 @@ mod tests {
 
         thread::sleep(StdDuration::from_millis(5));
 
-        let deleted = sweep_expired_retain(store.db_handle(), now_unix_nano()).unwrap();
+        let deleted = sweep_stale(store.db_handle(), now_unix_nano(), None).unwrap();
         assert_eq!(deleted, 1);
         assert!(store.get("gone").unwrap().is_none());
         assert!(store.get("legacy").unwrap().is_some());

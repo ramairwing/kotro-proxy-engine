@@ -18,6 +18,7 @@ pub(crate) const CACHE_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::ne
 pub struct StoreOptions {
     pub ttl: Duration,
     pub enable_compression: bool,
+    pub max_capacity: Option<usize>,
 }
 
 impl Default for StoreOptions {
@@ -25,6 +26,7 @@ impl Default for StoreOptions {
         Self {
             ttl: Duration::ZERO,
             enable_compression: true,
+            max_capacity: None,
         }
     }
 }
@@ -55,6 +57,7 @@ pub struct Store {
     path: PathBuf,
     ttl: Duration,
     compress: bool,
+    max_capacity: Option<usize>,
 }
 
 impl Store {
@@ -87,6 +90,7 @@ impl Store {
             path,
             ttl: opts.ttl,
             compress: opts.enable_compression,
+            max_capacity: opts.max_capacity,
         })
     }
 
@@ -164,12 +168,12 @@ impl Store {
         Ok(())
     }
 
-    /// Deletes all keys whose TTL prefix has lapsed.
+    /// Deletes all keys whose TTL prefix has lapsed or if cache is over max_capacity.
     pub fn sweep_expired(&self) -> Result<usize, StoreError> {
-        if self.ttl.is_zero() {
+        if self.ttl.is_zero() && self.max_capacity.is_none() {
             return Ok(0);
         }
-        super::eviction::sweep_expired_retain(&self.db, now_unix_nano())
+        super::eviction::sweep_stale(&self.db, now_unix_nano(), self.max_capacity)
     }
 
     /// Configured entry lifetime (`Duration::ZERO` = no expiry).
@@ -179,6 +183,11 @@ impl Store {
 
     pub fn compression_enabled(&self) -> bool {
         self.compress
+    }
+
+    /// Maximum capacity of the store in entries.
+    pub fn max_capacity(&self) -> Option<usize> {
+        self.max_capacity
     }
 
     /// On-disk database file path.
@@ -286,6 +295,7 @@ mod tests {
             StoreOptions {
                 ttl: Duration::from_millis(100),
                 enable_compression: false,
+                max_capacity: None,
             },
         )
         .unwrap();
@@ -342,6 +352,7 @@ mod tests {
             StoreOptions {
                 ttl: Duration::from_secs(3600),
                 enable_compression: true,
+                max_capacity: None,
             },
         )
         .unwrap();
