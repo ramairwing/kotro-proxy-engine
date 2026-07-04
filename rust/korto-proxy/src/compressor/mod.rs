@@ -7,7 +7,7 @@ use moka::sync::Cache;
 use sha2::{Digest, Sha256};
 
 use crate::models::anthropic::MessagesRequest;
-use crate::models::openai::{content_text, ChatCompletionRequest};
+use crate::models::openai::ChatCompletionRequest;
 
 const DEFAULT_MAX_SCOPES: u64 = 10_000;
 const DEFAULT_SCOPE_TTL: Duration = Duration::from_secs(3600);
@@ -102,10 +102,28 @@ impl StateTracker {
             if msg.role != "system" && msg.role != "user" {
                 continue;
             }
-            let text = content_text(&msg.content);
-            let (pruned, ok) = self.compress_message(scope, &text);
-            if ok {
-                msg.content = serde_json::Value::String(pruned);
+            match &mut msg.content {
+                serde_json::Value::String(text) => {
+                    let (pruned, ok) = self.compress_message(scope, text);
+                    if ok {
+                        msg.content = serde_json::Value::String(pruned);
+                    }
+                }
+                serde_json::Value::Array(parts) => {
+                    for part in parts {
+                        if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
+                            if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
+                                let (pruned, ok) = self.compress_message(scope, text);
+                                if ok {
+                                    if let Some(obj) = part.as_object_mut() {
+                                        obj.insert("text".to_string(), serde_json::Value::String(pruned));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         }
         req
@@ -117,10 +135,28 @@ impl StateTracker {
         mut req: MessagesRequest,
     ) -> MessagesRequest {
         if !req.system.is_null() {
-            let text = content_text(&req.system);
-            let (pruned, ok) = self.compress_message(scope, &text);
-            if ok {
-                req.system = serde_json::Value::String(pruned);
+            match &mut req.system {
+                serde_json::Value::String(text) => {
+                    let (pruned, ok) = self.compress_message(scope, text);
+                    if ok {
+                        req.system = serde_json::Value::String(pruned);
+                    }
+                }
+                serde_json::Value::Array(parts) => {
+                    for part in parts {
+                        if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
+                            if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
+                                let (pruned, ok) = self.compress_message(scope, text);
+                                if ok {
+                                    if let Some(obj) = part.as_object_mut() {
+                                        obj.insert("text".to_string(), serde_json::Value::String(pruned));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         }
 
@@ -128,10 +164,28 @@ impl StateTracker {
             if msg.role != "user" {
                 continue;
             }
-            let text = content_text(&msg.content);
-            let (pruned, ok) = self.compress_message(scope, &text);
-            if ok {
-                msg.content = serde_json::Value::String(pruned);
+            match &mut msg.content {
+                serde_json::Value::String(text) => {
+                    let (pruned, ok) = self.compress_message(scope, text);
+                    if ok {
+                        msg.content = serde_json::Value::String(pruned);
+                    }
+                }
+                serde_json::Value::Array(parts) => {
+                    for part in parts {
+                        if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
+                            if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
+                                let (pruned, ok) = self.compress_message(scope, text);
+                                if ok {
+                                    if let Some(obj) = part.as_object_mut() {
+                                        obj.insert("text".to_string(), serde_json::Value::String(pruned));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         }
         req
@@ -139,7 +193,13 @@ impl StateTracker {
 }
 
 pub fn split_blocks(content: &str) -> Vec<String> {
-    let mut blocks = content
+    // Expand typical Agent boundaries to double newlines to ensure clean splitting
+    let expanded = content
+        .replace("\n<", "\n\n<")
+        .replace("\n```", "\n\n```")
+        .replace("\n===", "\n\n===");
+
+    let mut blocks = expanded
         .split("\n\n")
         .map(str::trim)
         .filter(|part| !part.is_empty())
