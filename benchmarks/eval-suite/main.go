@@ -136,6 +136,7 @@ func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamU
 		httpReq, _ := http.NewRequest("POST", ts.URL+"/chat/completions", bytes.NewBuffer(bodyBytes))
 		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Accept-Encoding", "identity")
 
 		client := &http.Client{Timeout: 60 * time.Second}
 		resp, err := client.Do(httpReq)
