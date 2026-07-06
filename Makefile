@@ -3,7 +3,8 @@
 build: proxy mock
 
 proxy:
-	go build -o bin/kortolabs-proxy ./cmd/proxy
+	cd rust && CARGO_TARGET_DIR=../bin/rust-target cargo build --release -p korto-proxy
+	cp bin/rust-target/release/korto-proxy bin/kortolabs-proxy
 
 mock:
 	go build -o bin/mock-upstream ./cmd/mockupstream
