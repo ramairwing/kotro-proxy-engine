@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { binaryBasename } from './binary-target';
 import { ProxyStatusBar } from './status-bar';
-import { addrForEnv } from './listen-url';
+import { addrForEnv, listenBaseUrl } from './listen-url';
+import { verifyCache } from './verify-cache';
 
 let sidecarProcess: ChildProcess | null = null;
 let statusBar: ProxyStatusBar | null = null;
@@ -43,6 +44,107 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('kortosystems.showProxyOutput', () => {
       output.show(true);
     }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('kortosystems.verifyCache', async () => {
+      output.show(true);
+      output.appendLine('Running cache verification (2 identical streaming requests)...');
+
+      const result = await verifyCache(settings.listenAddr);
+      output.appendLine(result.detail);
+
+      if (result.ok) {
+        const pick = await vscode.window.showInformationMessage(
+          `Korto cache verified: ${result.detail}`,
+          'Open Dashboard',
+        );
+        if (pick === 'Open Dashboard') {
+          void vscode.commands.executeCommand('kortosystems.openDashboard');
+        }
+        statusBar?.markRunning();
+        return;
+      }
+
+      const pick = await vscode.window.showWarningMessage(
+        `Korto cache verification failed. ${result.detail}`,
+        'Open Dashboard',
+        'Show Logs',
+      );
+      if (pick === 'Open Dashboard') {
+        void vscode.commands.executeCommand('kortosystems.openDashboard');
+      } else if (pick === 'Show Logs') {
+        output.show(true);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('korto.connectCursor', async () => {
+      const pick = await vscode.window.showInformationMessage(
+        'Cursor Auto mode completely bypasses local proxies. To use Korto caching, you must configure a custom Base URL. Would you like to configure Korto for Cursor Chat now?',
+        'Yes, configure BYOK',
+        'Use Continue.dev instead',
+        'Learn More'
+      );
+      
+      if (pick === 'Yes, configure BYOK') {
+        const pick2 = await vscode.window.showInformationMessage(
+          '1. Open Cursor Settings -> Models\n2. Enable "Override OpenAI Base URL" and set it to: http://localhost:8080/v1\n3. Add your API key\n4. Select a specific model (e.g. gpt-4o), do NOT use Auto.',
+          'Verify Cache'
+        );
+        if (pick2 === 'Verify Cache') {
+          void vscode.commands.executeCommand('kortosystems.verifyCache');
+        }
+      } else if (pick === 'Use Continue.dev instead') {
+        void vscode.commands.executeCommand('korto.setupContinue');
+      } else if (pick === 'Learn More') {
+        void vscode.env.openExternal(vscode.Uri.parse('https://github.com/ramairwing/kotro-proxy-engine/blob/main/distributions/vscode-extension/README.md#verify-it-works-2-minutes'));
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('korto.setupContinue', async () => {
+      const homeDir = process.env.HOME || process.env.USERPROFILE;
+      if (!homeDir) {
+        void vscode.window.showErrorMessage('Could not determine home directory.');
+        return;
+      }
+      const configPath = path.join(homeDir, '.continue', 'config.json');
+      
+      if (!fs.existsSync(configPath)) {
+        void vscode.window.showErrorMessage('Continue config not found. Please install Continue.dev first.');
+        return;
+      }
+      
+      try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const config = JSON.parse(content);
+        if (!config.models) {
+          config.models = [];
+        }
+        
+        const existing = config.models.find((m: any) => m.title === 'Korto Local Proxy');
+        if (existing) {
+          void vscode.window.showInformationMessage('Korto is already configured in your Continue settings.');
+          return;
+        }
+        
+        config.models.push({
+          title: "Korto Local Proxy",
+          provider: "openai",
+          model: "gpt-4o",
+          apiKey: "YOUR_API_KEY",
+          apiBase: "http://localhost:8080/v1"
+        });
+        
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        void vscode.window.showInformationMessage('Success! Continue.dev is now configured to route through Korto.');
+      } catch (err: any) {
+        void vscode.window.showErrorMessage(`Failed to update Continue config: ${err.message}`);
+      }
+    })
   );
 
   const binaryName = binaryBasename(process.platform, process.arch);
@@ -105,11 +207,20 @@ export function activate(context: vscode.ExtensionContext): void {
 
   statusBar.markRunning();
 
-  const port = settings.listenAddr.replace(/^:/, '') || '8080';
-  const metricsPort = addrForEnv(settings.metricsAddr).split(':').pop() || '9090';
-  void vscode.window.showInformationMessage(
-    `KortoLabs Proxy is running on port ${port} (telemetry on ${metricsPort}). Open the dashboard from the status bar.`,
-  );
+  const proxyBase = `${listenBaseUrl(settings.listenAddr)}/v1`;
+  void vscode.window
+    .showInformationMessage(
+      `Korto proxy is running. Route your IDE to ${proxyBase} — then run "Korto: Verify Cache" to confirm.`,
+      'Verify Cache',
+      'Open Dashboard',
+    )
+    .then((pick) => {
+      if (pick === 'Verify Cache') {
+        void vscode.commands.executeCommand('kortosystems.verifyCache');
+      } else if (pick === 'Open Dashboard') {
+        void vscode.commands.executeCommand('kortosystems.openDashboard');
+      }
+    });
 }
 
 export function deactivate(): void {

@@ -280,6 +280,46 @@
       display: inline-block;
       font-variant-numeric: tabular-nums;
     }
+
+    .onboarding {
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid hsla(172, 66%, 54%, 0.35);
+      background: hsla(172, 66%, 54%, 0.08);
+    }
+
+    .onboarding h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .onboarding p {
+      margin: 0.35rem 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .onboarding code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: rgba(0,0,0,0.25);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .onboarding ol {
+      margin: 0.75rem 0 0;
+      padding-left: 1.25rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .onboarding li { margin: 0.35rem 0; }
+
+    .onboarding[hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -297,6 +337,16 @@
     </div>
   </header>
   <main>
+    <div class="onboarding glass" id="onboarding" hidden>
+      <h2>Proxy is running — but is your IDE connected?</h2>
+      <p>Installing the extension starts the proxy. It does <strong>not</strong> automatically route Cursor chat here.</p>
+      <ol>
+        <li>In Cursor: <strong>Settings → Models</strong> → set OpenAI Base URL to <code>http://localhost:8080/v1</code></li>
+        <li>Run <strong>Korto: Verify Cache</strong> from the Command Palette (sends 2 test requests)</li>
+        <li>Watch this table below for <span class="pill miss">MISS</span> then <span class="pill hit">HIT</span> on <code>/v1/chat/completions</code></li>
+      </ol>
+      <p style="margin-top: 0.75rem;">Opening <code>http://localhost:8080/v1/</code> in a browser only shows <span class="pill bypass">BYPASS</span> — that does not test the cache.</p>
+    </div>
     <div class="grid">
       <!-- Hero Card -->
       <div class="card glass hero-card">
@@ -392,6 +442,27 @@
       return '<span class="pill ' + cls + '">' + status.toUpperCase() + '</span>';
     }
 
+    function needsOnboarding(data) {
+      if (!data.recent_requests || data.recent_requests.length === 0) {
+        return true;
+      }
+      var llm = data.recent_requests.filter(function (r) {
+        return r.route === '/v1/chat/completions' || r.route === '/v1/messages';
+      });
+      if (llm.length === 0) {
+        return true;
+      }
+      return !llm.some(function (r) {
+        return r.cache_status === 'hit' || r.cache_status === 'miss';
+      });
+    }
+
+    function updateOnboarding(data) {
+      var el = document.getElementById('onboarding');
+      if (!el) return;
+      el.hidden = !needsOnboarding(data);
+    }
+
     // Number Rolling Animation
     const DURATION = 1000; // ms
     function easeOutExpo(t) {
@@ -441,6 +512,7 @@
 
     // Render Data
     function render(data) {
+      updateOnboarding(data);
       // Animate scalar values
       updateCounter('dollars-saved', data.estimated_dollars_saved, fmtCurrency);
       

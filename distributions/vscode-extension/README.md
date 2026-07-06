@@ -56,12 +56,31 @@ Works in **VS Code**, **Cursor**, and other VS Code–compatible editors.
 
 3. Click the **Kotro** item in the status bar to open the dashboard.
 
+## Verify it works (2 minutes)
+
+The extension **starts** the proxy. Your IDE must **send API traffic** to it.
+
+| Step | Action | Success signal |
+|------|--------|----------------|
+| 1 | **Cmd+Shift+P** → **Korto: Verify Cache** | Notification: `MISS` then `HIT` |
+| 2 | Open dashboard (`http://127.0.0.1:9090/dashboard`) | Recent Traffic shows `miss` then `hit` on `/v1/chat/completions` |
+| 3 | (Optional) Cursor **Settings → Models** → OpenAI Base URL = `http://localhost:8080/v1` | Chat traffic appears in dashboard |
+
+**Common mistakes**
+
+- Reading the **chat reply** — that is the model answer, not proxy logs.
+- Opening `http://localhost:8080/v1/` in a browser — API only; shows `BYPASS`, not cache.
+- Using **Korto: Show Proxy Logs** for HIT/MISS — that channel shows startup lines only; use Verify Cache or the dashboard.
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
+| **Korto: Verify Cache** | Sends two identical test requests; confirms cache HIT |
+| **Korto: Connect Cursor** | Wizard for routing Cursor BYOK chat through the proxy |
+| **Korto: Setup Continue.dev Config** | Adds Korto to `~/.continue/config.json` |
 | **Korto: Open Dashboard** | Opens the local operator UI |
-| **Korto: Show Proxy Logs** | Opens the extension output channel |
+| **Korto: Show Proxy Logs** | Opens the extension output channel (startup / errors) |
 
 ## Architecture
 

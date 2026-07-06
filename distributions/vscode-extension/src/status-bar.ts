@@ -3,16 +3,20 @@ import { listenBaseUrl, telemetryBaseUrl } from './listen-url';
 
 export type DashboardSnapshot = {
   cache_hit_rate_5m: number;
+  cache_hits_5m: number;
+  cache_misses_5m: number;
   compressor_bytes_saved_total: number;
   cache_replay_bytes_total: number;
   estimated_dollars_saved: number;
   recent_requests: Array<{
+    route: string;
     cache_status: string;
   }>;
 };
 
 const POLL_MS = 5000;
 const FETCH_TIMEOUT_MS = 2500;
+const IDLE_WARNING_MS = 5 * 60 * 1000; // 5 minutes
 
 function formatBytes(n: number): string {
   if (n >= 1048576) {
@@ -40,11 +44,22 @@ function formatDollars(d: number): string {
 }
 
 function lastCacheLabel(snapshot: DashboardSnapshot | null): string {
-  const status = snapshot?.recent_requests?.[0]?.cache_status;
-  if (!status) {
-    return '—';
+  const recent = snapshot?.recent_requests?.[0];
+  if (!recent) {
+    return 'ready';
   }
-  return status.toUpperCase();
+
+  const llmRoute =
+    recent.route === '/v1/chat/completions' || recent.route === '/v1/messages';
+  if (!llmRoute) {
+    return 'idle';
+  }
+
+  if (recent.cache_status === 'hit' || recent.cache_status === 'miss') {
+    return recent.cache_status.toUpperCase();
+  }
+
+  return 'idle';
 }
 
 export class ProxyStatusBar implements vscode.Disposable {
@@ -54,14 +69,16 @@ export class ProxyStatusBar implements vscode.Disposable {
   private telemetryAddr: string;
   private dashboardUrl: string;
   private running = false;
+  private firstSeenAt: number | null = null;
+  private hasWarnedIdle = false;
 
   constructor(listenAddr: string, telemetryAddr: string) {
     this.listenAddr = listenAddr;
     this.telemetryAddr = telemetryAddr;
     this.dashboardUrl = `${telemetryBaseUrl(telemetryAddr)}/dashboard`;
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
-    this.item.command = 'kortosystems.openDashboard';
-    this.item.tooltip = 'Open Kotro proxy dashboard';
+    this.item.command = 'korto.connectCursor';
+    this.item.tooltip = 'Kotro Proxy Status';
     this.setOffline();
     this.item.show();
   }
@@ -74,12 +91,18 @@ export class ProxyStatusBar implements vscode.Disposable {
 
   markRunning(): void {
     this.running = true;
+    if (!this.firstSeenAt) {
+      this.firstSeenAt = Date.now();
+      this.hasWarnedIdle = false;
+    }
     void this.refresh();
     this.startPolling();
   }
 
   markStopped(): void {
     this.running = false;
+    this.firstSeenAt = null;
+    this.hasWarnedIdle = false;
     this.stopPolling();
     this.setOffline();
   }
@@ -115,13 +138,35 @@ export class ProxyStatusBar implements vscode.Disposable {
     const telemetry = telemetryBaseUrl(this.telemetryAddr);
     const snapshot = await fetchDashboard(`${telemetry}/api/dashboard`);
     if (snapshot) {
-      const cache = lastCacheLabel(snapshot);
+      const label = lastCacheLabel(snapshot);
       const totalBytes = snapshot.compressor_bytes_saved_total + snapshot.cache_replay_bytes_total;
       const tokensSaved = formatTokens(totalBytes);
       const dollarsSaved = formatDollars(snapshot.estimated_dollars_saved);
       const hitRate = `${(snapshot.cache_hit_rate_5m * 100).toFixed(0)}%`;
-      this.item.text = `$(pulse) Kotro: ${cache} · ${tokensSaved} saved`;
-      this.item.tooltip = `Total Saved: ${tokensSaved} tokens (${dollarsSaved})\nCache Hit Rate (5m): ${hitRate}\nClick to open dashboard`;
+      
+      const requests5m = (snapshot.cache_hits_5m || 0) + (snapshot.cache_misses_5m || 0);
+      const idleMs = this.firstSeenAt ? Date.now() - this.firstSeenAt : 0;
+      
+      let trafficHint = '';
+      if (requests5m === 0 && idleMs > IDLE_WARNING_MS) {
+        this.item.text = `$(warning) Kotro: disconnected`;
+        this.item.tooltip = `Proxy is up, but no traffic detected in 5m.\nCursor Auto bypasses local proxies.\nClick to run "Connect Cursor" setup wizard.`;
+        if (!this.hasWarnedIdle) {
+          this.hasWarnedIdle = true;
+          vscode.window.showWarningMessage('Korto is running, but no traffic detected. Are you using Cursor Auto? Auto bypasses local proxies.', 'Connect Cursor').then(res => {
+            if (res === 'Connect Cursor') {
+              vscode.commands.executeCommand('korto.connectCursor');
+            }
+          });
+        }
+        return;
+      } else {
+        this.item.text = `$(pulse) Kotro: ${label} · ${tokensSaved} saved`;
+        trafficHint = label === 'ready' || label === 'idle'
+          ? '\nNo LLM traffic yet — run "Korto: Verify Cache"'
+          : '';
+        this.item.tooltip = `Total Saved: ${tokensSaved} tokens (${dollarsSaved})\nCache Hit Rate (5m): ${hitRate}\nLast result: ${label}${trafficHint}\nClick for connection options`;
+      }
       return;
     }
 
