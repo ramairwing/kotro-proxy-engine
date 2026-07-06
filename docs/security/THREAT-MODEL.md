@@ -221,4 +221,4 @@ Use this for internal design-partner or enterprise approval:
 
 ## 11. Reporting
 
-Report vulnerabilities via GitHub Security Advisories on [ramairwing/kotro-proxy-engine](https://github.com/ramairwing/kotro-proxy-engine/security/advisories/new).
+Report vulnerabilities via GitHub Security Advisories on [kotro/kotro-proxy-engine](https://github.com/kotro/kotro-proxy-engine/security/advisories/new).

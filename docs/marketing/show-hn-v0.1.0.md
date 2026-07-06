@@ -4,7 +4,7 @@
 
 > Show HN: Local LLM proxy with semantic SSE cache, PII redaction, and cancel-storm leak audit
 
-**URL:** https://github.com/ramairwing/kotro-proxy-engine
+**URL:** https://github.com/kotro/kotro-proxy-engine
 
 ---
 
@@ -37,12 +37,12 @@ npm install -g @kortosystems/proxy-engine
 kortolabs-proxy
 
 # Homebrew (macOS)
-brew tap ramairwing/tap
-brew trust ramairwing/tap
+brew tap kotro/tap
+brew trust kotro/tap
 brew install kortolabs-proxy
 
 # Docker (mock upstream + Rust proxy)
-git clone https://github.com/ramairwing/kotro-proxy-engine.git
+git clone https://github.com/kotro/kotro-proxy-engine.git
 cd kotro-proxy-engine && docker compose up
 ```
 
@@ -56,7 +56,7 @@ VS Code / Cursor extension: search **KortoLabs Proxy Engine** (publisher: `korto
 make cancel-audit   # 500 VUs disconnect mid-stream → 0 goroutine delta
 ```
 
-Repo: https://github.com/ramairwing/kotro-proxy-engine
+Repo: https://github.com/kotro/kotro-proxy-engine
 
 Happy to answer questions on the SSE frame pipeline, cache wire format, or the Rust port strategy.
 
