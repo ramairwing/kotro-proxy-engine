@@ -1,6 +1,7 @@
 //! Context block dedup — mirrors `internal/compressor/context.go`.
 
 pub mod shrink;
+pub mod ast;
 
 use std::collections::HashMap;
 use std::time::Duration;

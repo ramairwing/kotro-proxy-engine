@@ -4,11 +4,19 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 static JSON_BLOCK_REGEX: OnceLock<Regex> = OnceLock::new();
+static CODE_BLOCK_REGEX: OnceLock<Regex> = OnceLock::new();
 
 fn get_json_regex() -> &'static Regex {
     JSON_BLOCK_REGEX.get_or_init(|| {
         // Matches ```json\n{...}\n``` non-greedily
         Regex::new(r"```json\s*\n([\s\S]*?)\n```").unwrap()
+    })
+}
+
+fn get_code_regex() -> &'static Regex {
+    CODE_BLOCK_REGEX.get_or_init(|| {
+        // Matches ```rust or ```python blocks non-greedily
+        Regex::new(r"```(rust|python)\s*\n([\s\S]*?)\n```").unwrap()
     })
 }
 
@@ -57,7 +65,16 @@ pub fn shrink_text(content: &str) -> String {
         caps[0].to_string()
     });
 
-    shrunk_json.into_owned()
+    // Prune AST inside rust/python blocks
+    let re_code = get_code_regex();
+    let shrunk_code = re_code.replace_all(&shrunk_json, |caps: &regex::Captures| {
+        let lang = caps.get(1).map_or("", |m| m.as_str());
+        let code_str = caps.get(2).map_or("", |m| m.as_str());
+        let pruned = super::ast::prune_code_block(lang, code_str);
+        format!("```{}\n{}\n```", lang, pruned)
+    });
+
+    shrunk_code.into_owned()
 }
 
 #[cfg(test)]
