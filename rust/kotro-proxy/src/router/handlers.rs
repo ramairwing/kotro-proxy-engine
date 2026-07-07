@@ -23,6 +23,7 @@ use crate::cache::generate_cache_key;
 use crate::compressor::Scope;
 use crate::guardrail::{redact_chat_request, redact_messages_request, RedactionMap};
 use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest};
+use crate::router::classifier;
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
 use crate::proxy::replay::create_cached_replay_stream;
 use crate::router::AppState;
@@ -295,6 +296,13 @@ pub async fn handle_chat_completions(
     state.metrics.record_request_body("openai", body_str.len());
 
     let scope = state.scope.from_request(&headers, peer.ip());
+    let (_, latest_user) = req.extract_prompt_state();
+
+    if classifier::is_trivial_prompt(&latest_user) && state.local_upstream_url.is_some() {
+        tracing::info!("MoE triggered: routed trivial prompt to {}", state.moe_default_model);
+        req.model = state.moe_default_model.clone();
+    }
+
     let (processed, cache_source, redaction_map) =
         apply_openai_middleware(&state, req, &scope);
     let cache_key = openai_cache_key(&state, &scope, &cache_source);
@@ -361,7 +369,7 @@ pub async fn handle_messages(
     Json(payload): Json<Value>,
 ) -> Response {
     let start_time = Instant::now();
-    let req: MessagesRequest = match serde_json::from_value(payload) {
+    let mut req: MessagesRequest = match serde_json::from_value(payload) {
         Ok(req) => req,
         Err(err) => {
             state.metrics.record_error("anthropic", "parse");
@@ -373,6 +381,13 @@ pub async fn handle_messages(
     state.metrics.record_request_body("anthropic", body_str.len());
 
     let scope = state.scope.from_request(&headers, peer.ip());
+    let (_, latest_user) = req.extract_prompt_state();
+
+    if classifier::is_trivial_prompt(&latest_user) && state.local_upstream_url.is_some() {
+        tracing::info!("MoE triggered: routed trivial prompt to {}", state.moe_default_model);
+        req.model = state.moe_default_model.clone();
+    }
+
     let (processed, cache_source, redaction_map) =
         apply_anthropic_middleware(&state, req, &scope);
     let cache_key = anthropic_cache_key(&state, &scope, &cache_source);
@@ -683,8 +698,9 @@ fn copy_response_headers(src: &reqwest::header::HeaderMap, dst: &mut HeaderMap) 
 }
 
 fn get_upstream_url<'a>(state: &'a AppState, model: &str) -> &'a str {
-    if let (Some(pattern), Some(local_url)) = (&state.local_model_pattern, &state.local_upstream_url) {
-        if pattern.is_match(model) {
+    let is_moe = model == state.moe_default_model;
+    if is_moe || state.local_model_pattern.as_ref().map_or(false, |p| p.is_match(model)) {
+        if let Some(local_url) = &state.local_upstream_url {
             return local_url.as_str();
         }
     }

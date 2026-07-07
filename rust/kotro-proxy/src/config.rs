@@ -28,6 +28,7 @@ pub struct Config {
     pub enable_metrics: bool,
     pub local_model_pattern: Option<String>,
     pub local_upstream_url: Option<String>,
+    pub moe_default_model: String,
 }
 
 impl Default for Config {
@@ -56,6 +57,7 @@ impl Default for Config {
             enable_metrics: true,
             local_model_pattern: None,
             local_upstream_url: None,
+            moe_default_model: "llama3".into(),
         }
     }
 }
@@ -137,6 +139,7 @@ impl Config {
             enable_metrics: env_bool("KOTRO_ENABLE_METRICS", defaults.enable_metrics),
             local_model_pattern: env_opt("KOTRO_LOCAL_MODEL_PATTERN"),
             local_upstream_url: env_opt("KOTRO_LOCAL_UPSTREAM_URL"),
+            moe_default_model: env_or("KOTRO_MOE_DEFAULT_MODEL", defaults.moe_default_model),
         }
     }
 }

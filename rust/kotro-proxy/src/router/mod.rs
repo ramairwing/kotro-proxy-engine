@@ -1,8 +1,9 @@
 //! Axum HTTP/2 router — mirrors `internal/server/server.go` + handlers.
 
 mod handlers;
-mod scope;
-mod upstream;
+pub mod scope;
+pub mod upstream;
+pub mod classifier;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -43,6 +44,7 @@ pub struct AppState {
     pub metrics: crate::metrics::MetricsRegistry,
     pub local_model_pattern: Option<regex::Regex>,
     pub local_upstream_url: Option<String>,
+    pub moe_default_model: String,
     pub circuit_breaker: moka::sync::Cache<String, u32>,
 }
 
@@ -83,6 +85,7 @@ impl AppState {
             metrics,
             local_model_pattern: cfg.local_model_pattern.as_ref().and_then(|p| regex::Regex::new(p).ok()),
             local_upstream_url: cfg.local_upstream_url.clone().map(|u| u.trim_end_matches('/').to_string()),
+            moe_default_model: cfg.moe_default_model.clone(),
             circuit_breaker: moka::sync::Cache::builder()
                 .time_to_live(Duration::from_secs(60))
                 .build(),
