@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
 )
 
 func TestFailoverTransport(t *testing.T) {

@@ -4,8 +4,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 | Secret | Purpose | How to obtain |
 |--------|---------|---------------|
-| `NPM_TOKEN` | Publish `@kortosystems/proxy-engine` on tag push | [npmjs.com](https://www.npmjs.com) → Access Tokens → **Automation** token |
-| `VSCE_PAT` | Publish `kortosystems.kortolabs-proxy-engine` to VS Code Marketplace | [Azure DevOps PAT](https://dev.azure.com/_users/settings/tokens) with **Marketplace → Manage** scope |
+| `NPM_TOKEN` | Publish `@kotro-labs/proxy-engine` on tag push | [npmjs.com](https://www.npmjs.com) → Access Tokens → **Automation** token |
+| `VSCE_PAT` | Publish `kotrolabs.kotro-proxy-engine` to VS Code Marketplace | [Azure DevOps PAT](https://dev.azure.com/_users/settings/tokens) with **Marketplace → Manage** scope |
 
 **Automated Marketplace publish:** optional — requires `VSCE_PAT` (often blocked by Azure).  
 **If stuck on PAT:** use [MARKETPLACE-MANUAL.md](MARKETPLACE-MANUAL.md) (~2 min per release, no Azure).
@@ -19,12 +19,12 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 | **`vsce login`** to verify publisher | **Yes** |
 
 **Fastest path without Azure subscription:** build `.vsix` locally and drag it into  
-[marketplace.visualstudio.com/manage/publishers/kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)  
+[marketplace.visualstudio.com/manage/publishers/kotrolabs](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)  
 → **New extension** → upload file. Public install counter starts immediately.
 
 ```bash
-# After CI completes, download kortolabs-proxy-engine.vsix from GitHub Releases
-# Upload via Marketplace → kortosystems → New extension
+# After CI completes, download kotro-proxy-engine.vsix from GitHub Releases
+# Upload via Marketplace → kotrolabs → New extension
 ```
 
 Only pursue `VSCE_PAT` below if you want **fully automated** `vsce publish` in GitHub Actions.
@@ -35,7 +35,7 @@ The URL `dev.azure.com/_users/settings/tokens` often returns **404**. Use one of
 
 ### Option A — From Marketplace (easiest)
 
-1. Stay on [marketplace.visualstudio.com/manage/publishers/kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)
+1. Stay on [marketplace.visualstudio.com/manage/publishers/kotrolabs](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)
 2. Click your **profile / name** (top right, near Sign out)
 3. Look for **Personal access tokens** or a link to **Azure DevOps**
 4. Create token with:
@@ -63,17 +63,17 @@ If org creation succeeds:
 
 ```bash
 cd distributions/vscode-extension
-npx @vscode/vsce login kortosystems
+npx @vscode/vsce login kotrolabs
 # Paste the PAT when prompted — should print "verification succeeded"
 ```
 
 **Manual upload** (publisher owner, no PAT): use **New extension** on  
-[marketplace.visualstudio.com/manage/publishers/kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)  
-and upload `kortolabs-proxy-engine.vsix` from GitHub Releases.
+[marketplace.visualstudio.com/manage/publishers/kotrolabs](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)  
+and upload `kotro-proxy-engine.vsix` from GitHub Releases.
 
 ## NPM_TOKEN
 
-1. Create npm org **kortosystems** at [npmjs.com/org/create](https://www.npmjs.com/org/create)  
+1. Create npm org **kotrolabs** at [npmjs.com/org/create](https://www.npmjs.com/org/create)  
    *Or use `@kotro/proxy-engine` if you prefer your personal scope — update `distributions/npm-cli/package.json`.*
 2. **Access Tokens** → **Automation** token with publish access
 3. GitHub secret named exactly **`NPM_TOKEN`**
@@ -108,8 +108,8 @@ git push origin main
 | Surface | URL |
 |---------|-----|
 | GitHub Release | https://github.com/kotro-labs/kotro-proxy-engine/releases |
-| npm | https://www.npmjs.com/package/@kortosystems/proxy-engine |
-| VS Code Marketplace | https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine |
+| npm | https://www.npmjs.com/package/@kotro-labs/proxy-engine |
+| VS Code Marketplace | https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine |
 
 If secrets are absent, the release workflow **skips** registry publish and still uploads GitHub Release assets + `.vsix`.
 

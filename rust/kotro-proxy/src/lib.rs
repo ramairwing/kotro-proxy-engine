@@ -1,4 +1,4 @@
-//! Korto Proxy Engine — Rust Phase 2
+//! Kotro Proxy Engine — Rust Phase 2
 //!
 //! Semantic SSE cache, PII guardrail, and context compression for local LLM agents.
 //! Go Phase 1 on `main` is the behavioral reference implementation.

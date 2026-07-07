@@ -25,7 +25,7 @@ A separate repository is usually **unnecessary**. Marketplace publish only needs
 
    ```bash
    cd distributions/vscode-extension
-   npx @vscode/vsce login kortosystems
+   npx @vscode/vsce login kotrolabs
    ```
 
 ### What happens on every release
@@ -87,4 +87,4 @@ That adds complexity with little benefit for a solo/small-team publisher.
 ## Related
 
 - [SECRETS.md](SECRETS.md) — `VSCE_PAT` and `NPM_TOKEN`
-- [Publisher dashboard](https://marketplace.visualstudio.com/manage/publishers/kortosystems)
+- [Publisher dashboard](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)

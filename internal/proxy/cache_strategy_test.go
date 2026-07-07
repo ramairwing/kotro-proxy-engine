@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func TestCacheKeyStrategy_latestOnlyHitsDespiteToolHistory(t *testing.T) {
@@ -19,10 +19,10 @@ func TestCacheKeyStrategy_latestOnlyHitsDespiteToolHistory(t *testing.T) {
 	bodyA := agentBody("call_db", "Database migration active.", "Run tests again")
 	bodyB := agentBody("call_css", "CSS layout padding updated.", "Run tests again")
 
-	if post(h, bodyA).Header().Get("X-KortoLabs-Cache") != "" {
+	if post(h, bodyA).Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("first request should miss")
 	}
-	if got := post(h, bodyB).Header().Get("X-KortoLabs-Cache"); got != "HIT" {
+	if got := post(h, bodyB).Header().Get("X-Kotro-Cache"); got != "HIT" {
 		t.Fatalf("latest_only should hit when only final user text matches, got %q", got)
 	}
 }
@@ -32,10 +32,10 @@ func TestCacheKeyStrategy_windowNMissesOnDivergentToolHistory(t *testing.T) {
 	bodyA := agentBody("call_db", "Database migration active.", "Run tests again")
 	bodyB := agentBody("call_css", "CSS layout padding updated.", "Run tests again")
 
-	if post(h, bodyA).Header().Get("X-KortoLabs-Cache") != "" {
+	if post(h, bodyA).Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("first request should miss")
 	}
-	if got := post(h, bodyB).Header().Get("X-KortoLabs-Cache"); got == "HIT" {
+	if got := post(h, bodyB).Header().Get("X-Kotro-Cache"); got == "HIT" {
 		t.Fatal("window_n must not hit across divergent tool outputs with the same final user phrase")
 	}
 }
@@ -45,10 +45,10 @@ func TestCacheKeyStrategy_fullDigestMissesOnAnyHistoryChange(t *testing.T) {
 	bodyA := `{"model":"gpt-4o","stream":true,"messages":[{"role":"system","content":"sys"},{"role":"user","content":"step one"}]}`
 	bodyB := `{"model":"gpt-4o","stream":true,"messages":[{"role":"system","content":"sys"},{"role":"user","content":"step two"}]}`
 
-	if post(h, bodyA).Header().Get("X-KortoLabs-Cache") != "" {
+	if post(h, bodyA).Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("first request should miss")
 	}
-	if got := post(h, bodyB).Header().Get("X-KortoLabs-Cache"); got == "HIT" {
+	if got := post(h, bodyB).Header().Get("X-Kotro-Cache"); got == "HIT" {
 		t.Fatal("full_digest must miss when any turn differs")
 	}
 }

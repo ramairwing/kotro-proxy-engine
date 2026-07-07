@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 // EnforceCacheMatrix intercepts the JSON message payloads and enforces structural determinism.

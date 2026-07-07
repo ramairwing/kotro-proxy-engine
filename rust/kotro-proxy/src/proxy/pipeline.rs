@@ -175,7 +175,7 @@ mod tests {
         };
 
         let out = collect_pipeline(upstream, store, opts).await;
-        assert!(out[0].starts_with(b": kortolabs bootstrap"));
+        assert!(out[0].starts_with(b": kotrolabs bootstrap"));
         assert!(out.iter().any(|c| c.windows(6).any(|w| w == b"[DONE]")));
     }
 

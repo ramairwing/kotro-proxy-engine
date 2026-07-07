@@ -1,5 +1,5 @@
 image:
-  repository: kortosystems/proxy-engine
+  repository: kotrolabs/proxy-engine
   tag: "0.2.7"
   pullPolicy: IfNotPresent
 

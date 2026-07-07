@@ -41,7 +41,7 @@ struct ProblemDetails {
 
 fn problem_response(status: StatusCode, title: &str, detail: &str) -> Response {
     let pd = ProblemDetails {
-        problem_type: "https://docs.kortolabs.com/errors".to_string(),
+        problem_type: "https://docs.kotrolabs.com/errors".to_string(),
         title: title.to_string(),
         status: status.as_u16(),
         detail: detail.to_string(),
@@ -64,7 +64,7 @@ pub async fn handle_healthz() -> impl IntoResponse {
     (
         StatusCode::OK,
         [(CONTENT_TYPE.as_str(), "application/json")],
-        r#"{"status":"ok","service":"kortolabs-proxy"}"#,
+        r#"{"status":"ok","service":"kotro-proxy"}"#,
     )
 }
 
@@ -226,7 +226,7 @@ fn create_primed_miss_stream(
             let chunk = chunk_result?;
             if first {
                 first = false;
-                if chunk.starts_with(b": kortolabs bootstrap") {
+                if chunk.starts_with(b": kotrolabs bootstrap") {
                     continue;
                 }
             }
@@ -608,7 +608,7 @@ where
         headers.insert(name, HeaderValue::from_static(value));
     }
     if cache_hit {
-        headers.insert("x-kortolabs-cache", HeaderValue::from_static("HIT"));
+        headers.insert("x-kotro-cache", HeaderValue::from_static("HIT"));
     }
     response
 }

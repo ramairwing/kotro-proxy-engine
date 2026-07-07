@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func TestHandlerCacheHitAbortsOnClientCancel(t *testing.T) {
@@ -70,7 +70,7 @@ func TestHandlerCacheHitAbortsOnClientCancel(t *testing.T) {
 		t.Fatal("handler did not return after client context cancellation during cache hit")
 	}
 
-	if rec.Header().Get("X-KortoLabs-Cache") != "HIT" {
+	if rec.Header().Get("X-Kotro-Cache") != "HIT" {
 		t.Fatal("expected cache hit path")
 	}
 	if strings.Count(rec.Body.String(), `"content":"tok"`) > 30 {

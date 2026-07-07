@@ -10,14 +10,14 @@ cd "$ROOT"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.cargo/bin:$PATH"
 
-PROXY_URL="${KORTO_PROXY_URL:-http://127.0.0.1:8080}"
+PROXY_URL="${KOTRO_PROXY_URL:-http://127.0.0.1:8080}"
 K6_VUS="${K6_VUS:-100}"
 K6_DURATION="${K6_DURATION:-30s}"
 COOLDOWN_SEC="${COOLDOWN_SEC:-3}"
 # 100 VUs: connection pool + allocator plateau typically 50–65 MB above idle baseline.
 MEM_TOLERANCE_KB="${MEM_TOLERANCE_KB:-65536}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-5}"
-RUST_BIN="${RUST_BIN:-$ROOT/rust/target/release/korto-proxy}"
+RUST_BIN="${RUST_BIN:-$ROOT/rust/target/release/kotro-proxy}"
 SKIP_RUST_BUILD="${SKIP_RUST_BUILD:-0}"
 AUDIT_LOG_DIR="${AUDIT_LOG_DIR:-${ROOT}/benchmarks/.audit-logs}"
 
@@ -70,7 +70,7 @@ find_proxy_pid() {
     echo "$PROXY_PID"
     return
   fi
-  # Avoid matching Cursor extension hosts (workspace path contains korto-proxy-engine).
+  # Avoid matching Cursor extension hosts (workspace path contains kotro-proxy-engine).
   pgrep -f "${RUST_BIN}" 2>/dev/null | head -n 1 || true
 }
 
@@ -87,12 +87,12 @@ if [[ "$START_STACK" == "1" ]]; then
     exit 1
   fi
 
-  # Never pkill bare "korto-proxy" — that matches this repo path (korto-proxy-engine)
+  # Never pkill bare "kotro-proxy" — that matches this repo path (kotro-proxy-engine)
   # and can terminate Cursor's extension host.
   pkill -f 'bin/mock-upstream' 2>/dev/null || true
   pkill -f "${RUST_BIN}" 2>/dev/null || true
   sleep 0.5
-  rm -f kortolabs-cache.db
+  rm -f kotro-cache.db
 
   cleanup() {
     kill "$MOCK_PID" "$PROXY_PID" 2>/dev/null || true
@@ -109,9 +109,9 @@ if [[ "$START_STACK" == "1" ]]; then
   sleep 0.5
 
   RUST_LOG=warn \
-  KORTO_LISTEN_ADDR=":8080" \
-  KORTO_UPSTREAM_URL="http://127.0.0.1:9000" \
-  KORTO_CACHE_DB="${ROOT}/kortolabs-cache.db" \
+  KOTRO_LISTEN_ADDR=":8080" \
+  KOTRO_UPSTREAM_URL="http://127.0.0.1:9000" \
+  KOTRO_CACHE_DB="${ROOT}/kotro-cache.db" \
   "$RUST_BIN" >>"$PROXY_LOG" 2>&1 &
   PROXY_PID=$!
   sleep 0.5
@@ -132,7 +132,7 @@ echo "Baseline OS Threads: ${THREADS_BASELINE}"
 echo "Baseline Memory (RSS): ${MEM_BASELINE} KB"
 
 echo "=== Step 2: k6 cancel-storm (${K6_VUS} VUs, ${K6_DURATION}) ==="
-AUDIT_VUS="$K6_VUS" AUDIT_DURATION="$K6_DURATION" KORTO_PROXY_URL="$PROXY_URL" \
+AUDIT_VUS="$K6_VUS" AUDIT_DURATION="$K6_DURATION" KOTRO_PROXY_URL="$PROXY_URL" \
   k6 run --quiet --log-output=none benchmarks/cancel_storm.js \
   >"${AUDIT_LOG_DIR}/k6-rust.log" 2>&1 || true
 

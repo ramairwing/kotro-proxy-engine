@@ -1,4 +1,4 @@
-// Package server boots the KortoLabs local HTTP listener and routes.
+// Package server boots the Kotro Labs local HTTP listener and routes.
 package server
 
 import (
@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/dashboard"
-	"github.com/kortolabs/proxy-engine/internal/metrics"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/dashboard"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 // Server wraps the HTTP listeners and their dependencies.
@@ -78,7 +78,7 @@ func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 	proxyMux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","service":"kortolabs-proxy"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","service":"kotro-proxy"}`))
 	})
 	if cfg.EnablePprof && !cfg.EnableMetrics {
 		registerPprof(proxyMux)

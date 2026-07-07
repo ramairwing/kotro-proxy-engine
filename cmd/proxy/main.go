@@ -1,4 +1,4 @@
-// Command proxy is the KortoLabs local AI runtime proxy binary.
+// Command proxy is the Kotro Labs local AI runtime proxy binary.
 package main
 
 import (
@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/server"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/server"
 )
 
 func main() {
@@ -24,12 +24,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("kortolabs proxy starting",
+	logger.Info("kotrolabs proxy starting",
 		"listen", cfg.ListenAddr,
 		"metrics", cfg.MetricsAddr,
 		"upstream", cfg.UpstreamURL,
 		"fallback_configured", cfg.FallbackURL != "",
-		"profile", os.Getenv("KORTO_PROFILE"),
+		"profile", os.Getenv("KOTRO_PROFILE"),
 		"cache_strategy", cfg.CacheKeyStrategy,
 		"cache_window", cfg.CacheWindowSize,
 		"redaction", cfg.EnableRedaction,

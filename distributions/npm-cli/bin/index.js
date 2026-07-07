@@ -14,7 +14,7 @@ function main() {
   });
 
   child.on('error', (err) => {
-    console.error(`kortolabs-proxy: ${err.message}`);
+    console.error(`kotro-proxy: ${err.message}`);
     process.exit(1);
   });
 

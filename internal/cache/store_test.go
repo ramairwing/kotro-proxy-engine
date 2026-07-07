@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
 )
 
 func TestSemanticKeyDeterministic(t *testing.T) {

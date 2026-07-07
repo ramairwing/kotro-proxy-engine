@@ -10,7 +10,7 @@ cd "$ROOT"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-PROXY_URL="${KORTO_PROXY_URL:-http://127.0.0.1:8080}"
+PROXY_URL="${KOTRO_PROXY_URL:-http://127.0.0.1:8080}"
 PPROF_URL="${PROXY_URL}/debug/pprof/goroutine?debug=1"
 K6_VUS="${K6_VUS:-100}"
 K6_DURATION="${K6_DURATION:-30s}"
@@ -59,8 +59,8 @@ wait_for_proxy() {
 START_STACK="${START_STACK:-1}"
 if [[ "$START_STACK" == "1" ]]; then
   make build
-  pkill -f 'bin/mock-upstream|bin/kortolabs-proxy' 2>/dev/null || true
-  rm -f kortolabs-cache.db
+  pkill -f 'bin/mock-upstream|bin/kotro-proxy' 2>/dev/null || true
+  rm -f kotro-cache.db
 
   cleanup() {
     kill "$MOCK_PID" "$PROXY_PID" 2>/dev/null || true
@@ -76,9 +76,9 @@ if [[ "$START_STACK" == "1" ]]; then
   MOCK_PID=$!
   sleep 0.5
 
-  KORTO_UPSTREAM_URL=http://127.0.0.1:9000 \
-  KORTO_ENABLE_PPROF=true \
-  bin/kortolabs-proxy >>"$PROXY_LOG" 2>&1 &
+  KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 \
+  KOTRO_ENABLE_PPROF=true \
+  bin/kotro-proxy >>"$PROXY_LOG" 2>&1 &
   PROXY_PID=$!
   sleep 0.5
 fi
@@ -86,7 +86,7 @@ fi
 wait_for_proxy
 
 if ! curl_quiet "$PPROF_URL" >/dev/null 2>&1; then
-  echo "pprof not enabled. Start proxy with KORTO_ENABLE_PPROF=true"
+  echo "pprof not enabled. Start proxy with KOTRO_ENABLE_PPROF=true"
   exit 1
 fi
 
@@ -95,7 +95,7 @@ BASELINE="$(goroutine_total)"
 echo "goroutine profile: total ${BASELINE}"
 
 echo "=== Step 2: k6 cancel-storm (${K6_VUS} VUs, ${K6_DURATION}) ==="
-AUDIT_VUS="$K6_VUS" AUDIT_DURATION="$K6_DURATION" KORTO_PROXY_URL="$PROXY_URL" \
+AUDIT_VUS="$K6_VUS" AUDIT_DURATION="$K6_DURATION" KOTRO_PROXY_URL="$PROXY_URL" \
   k6 run --quiet --log-output=none benchmarks/cancel_storm.js \
   >"${AUDIT_LOG_DIR}/k6-go.log" 2>&1 || true
 

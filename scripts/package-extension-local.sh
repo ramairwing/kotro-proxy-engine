@@ -6,10 +6,10 @@
 #   scripts/package-extension-local.sh ~/Downloads/artifacts
 #
 # Expects binaries in distributions/vscode-extension/bin/ OR pass a folder containing:
-#   korto-proxy-aarch64-apple-darwin
-#   korto-proxy-x86_64-apple-darwin
-#   korto-proxy-x86_64-unknown-linux-gnu
-#   korto-proxy-x86_64-pc-windows-msvc.exe
+#   kotro-proxy-aarch64-apple-darwin
+#   kotro-proxy-x86_64-apple-darwin
+#   kotro-proxy-x86_64-unknown-linux-gnu
+#   kotro-proxy-x86_64-pc-windows-msvc.exe
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -34,28 +34,28 @@ copy_bin() {
 
 mkdir -p "$BIN_DIR"
 
-if [[ -x "${ROOT}/bin/kortolabs-proxy" ]]; then
+if [[ -x "${ROOT}/bin/kotro-proxy" ]]; then
   case "$(uname -s)/$(uname -m)" in
-    Darwin/arm64)  cp "${ROOT}/bin/kortolabs-proxy" "${BIN_DIR}/korto-proxy-aarch64-apple-darwin" ;;
-    Darwin/x86_64) cp "${ROOT}/bin/kortolabs-proxy" "${BIN_DIR}/korto-proxy-x86_64-apple-darwin" ;;
-    Linux/x86_64)  cp "${ROOT}/bin/kortolabs-proxy" "${BIN_DIR}/korto-proxy-x86_64-unknown-linux-gnu" ;;
+    Darwin/arm64)  cp "${ROOT}/bin/kotro-proxy" "${BIN_DIR}/kotro-proxy-aarch64-apple-darwin" ;;
+    Darwin/x86_64) cp "${ROOT}/bin/kotro-proxy" "${BIN_DIR}/kotro-proxy-x86_64-apple-darwin" ;;
+    Linux/x86_64)  cp "${ROOT}/bin/kotro-proxy" "${BIN_DIR}/kotro-proxy-x86_64-unknown-linux-gnu" ;;
   esac
   echo "Staged local Go proxy into ${BIN_DIR} for $(uname -s)/$(uname -m)"
 fi
 
-copy_bin "korto-proxy-aarch64-apple-darwin"
-copy_bin "korto-proxy-x86_64-apple-darwin"
-copy_bin "korto-proxy-x86_64-unknown-linux-gnu"
-copy_bin "korto-proxy-x86_64-pc-windows-msvc.exe"
+copy_bin "kotro-proxy-aarch64-apple-darwin"
+copy_bin "kotro-proxy-x86_64-apple-darwin"
+copy_bin "kotro-proxy-x86_64-unknown-linux-gnu"
+copy_bin "kotro-proxy-x86_64-pc-windows-msvc.exe"
 
 cd "$EXT_DIR"
 npm ci
 npm run compile
-npx @vscode/vsce package --no-dependencies -o "${ROOT}/kortolabs-proxy-engine.vsix"
+npx @vscode/vsce package --no-dependencies -o "${ROOT}/kotro-proxy-engine.vsix"
 
 echo ""
-echo "Built: ${ROOT}/kortolabs-proxy-engine.vsix"
+echo "Built: ${ROOT}/kotro-proxy-engine.vsix"
 echo ""
 echo "Upload manually (no VSCE_PAT required):"
-echo "  https://marketplace.visualstudio.com/manage/publishers/kortosystems"
-echo "  → Upload extension → drag kortolabs-proxy-engine.vsix"
+echo "  https://marketplace.visualstudio.com/manage/publishers/kotrolabs"
+echo "  → Upload extension → drag kotro-proxy-engine.vsix"

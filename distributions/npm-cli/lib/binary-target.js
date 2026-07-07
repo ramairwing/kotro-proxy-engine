@@ -7,10 +7,10 @@ const path = require('path');
 const fs = require('fs');
 
 const BINARY_BASENAMES = {
-  'darwin-arm64': 'korto-proxy-aarch64-apple-darwin',
-  'darwin-x64': 'korto-proxy-x86_64-apple-darwin',
-  'linux-x64': 'korto-proxy-x86_64-unknown-linux-gnu',
-  'win32-x64': 'korto-proxy-x86_64-pc-windows-msvc.exe',
+  'darwin-arm64': 'kotro-proxy-aarch64-apple-darwin',
+  'darwin-x64': 'kotro-proxy-x86_64-apple-darwin',
+  'linux-x64': 'kotro-proxy-x86_64-unknown-linux-gnu',
+  'win32-x64': 'kotro-proxy-x86_64-pc-windows-msvc.exe',
 };
 
 function binaryBasename(platform, arch) {
@@ -31,7 +31,7 @@ function resolveBinaryPath(binRoot, platform = process.platform, arch = process.
   const candidate = path.join(binRoot, name);
   if (!fs.existsSync(candidate)) {
     throw new Error(
-      `Native binary not found at ${candidate}. Reinstall @kortolabs/proxy-engine or build from source.`,
+      `Native binary not found at ${candidate}. Reinstall @kotrolabs/proxy-engine or build from source.`,
     );
   }
   return candidate;

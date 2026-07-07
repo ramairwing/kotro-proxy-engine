@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func TestBootstrapUpstreamSSE(t *testing.T) {
@@ -22,7 +22,7 @@ func TestBootstrapUpstreamSSE(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
-	if !strings.HasPrefix(rec.Body.String(), ": kortolabs bootstrap stream") {
+	if !strings.HasPrefix(rec.Body.String(), ": kotrolabs bootstrap stream") {
 		t.Fatalf("unexpected body prefix: %q", rec.Body.String())
 	}
 	if rec.Header().Get("Content-Type") != "text/event-stream" {
@@ -63,7 +63,7 @@ func TestSSEBootstrapOnCacheMiss(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d body %s", rec.Code, rec.Body.String())
 	}
-	if !strings.HasPrefix(rec.Body.String(), ": kortolabs bootstrap stream") {
+	if !strings.HasPrefix(rec.Body.String(), ": kotrolabs bootstrap stream") {
 		t.Fatalf("expected bootstrap comment first, got %q", rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "data: [DONE]") {
@@ -101,10 +101,10 @@ func TestSSEBootstrapOnCacheHit(t *testing.T) {
 
 	post() // warm cache
 	rec := post()
-	if rec.Header().Get("X-KortoLabs-Cache") != "HIT" {
+	if rec.Header().Get("X-Kotro-Cache") != "HIT" {
 		t.Fatal("expected cache hit")
 	}
-	if !strings.HasPrefix(rec.Body.String(), ": kortolabs bootstrap stream") {
+	if !strings.HasPrefix(rec.Body.String(), ": kotrolabs bootstrap stream") {
 		t.Fatalf("cache hit should also bootstrap, got %q", rec.Body.String())
 	}
 }

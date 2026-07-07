@@ -1,15 +1,15 @@
-# @kortosystems/proxy-engine
+# @kotro-labs/proxy-engine
 
 <p align="center">
-  <img src="media/icon.png" alt="Korto" width="72" height="72" />
+  <img src="media/icon.png" alt="Kotro" width="72" height="72" />
 </p>
 
-npm distribution for the [Korto Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local AI reverse proxy with streaming semantic cache, PII redaction, and context compression for OpenAI and Anthropic SDKs.
+npm distribution for the [Kotro Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local AI reverse proxy with streaming semantic cache, PII redaction, and context compression for OpenAI and Anthropic SDKs.
 
 ## Features
 
 - **Zero-config startup** — precompiled binary with no dependencies
-- **Semantic SSE cache** — faster repeat prompts; `X-KortoLabs-Cache: HIT` on cache hits
+- **Semantic SSE cache** — faster repeat prompts; `X-Kotro-Cache: HIT` on cache hits
 - **Enterprise failover** — dynamic routing on 429/503 upstream errors
 - **Operator dashboard** — local UI for observability (`http://127.0.0.1:9090/dashboard`)
 - **Isolated telemetry** — `/metrics` binds to loopback by default, separate from LLM traffic
@@ -18,16 +18,16 @@ npm distribution for the [Korto Proxy Engine](https://github.com/kotro-labs/kotr
 ## Install
 
 ```bash
-npm install -g @kortosystems/proxy-engine
+npm install -g @kotro-labs/proxy-engine
 ```
 
 ## Quick start
 
 ```bash
 # Point at your provider (default upstream is local mock on :9000)
-export KORTO_UPSTREAM_URL=https://api.openai.com
+export KOTRO_UPSTREAM_URL=https://api.openai.com
 
-kortolabs-proxy
+kotro-proxy
 ```
 
 The proxy listens on `:8080` by default. Point your IDE or SDK at `http://localhost:8080/v1`.
@@ -39,7 +39,7 @@ curl -N http://127.0.0.1:8080/v1/chat/completions \
   -d '{"model":"gpt-4","stream":true,"messages":[{"role":"user","content":"hello"}]}'
 ```
 
-Cache hits return the `X-KortoLabs-Cache: HIT` header.
+Cache hits return the `X-Kotro-Cache: HIT` header.
 
 ## Architecture
 
@@ -52,19 +52,19 @@ Operator   →  127.0.0.1:9090/dashboard  (telemetry — loopback only by defaul
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `KORTO_LISTEN_ADDR` | `:8080` | Proxy bind address |
-| `KORTO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
-| `KORTO_ENABLE_CACHE` | `true` | Semantic SSE cache |
-| `KORTO_ENABLE_REDACTION` | `true` | PII guardrail |
-| `KORTO_ENABLE_COMPRESSION` | `true` | Context block dedup |
-| `KORTO_TRUST_UPSTREAM_GATEWAY` | `false` | Honor `X-Tenant-ID` only from trusted proxy CIDRs |
+| `KOTRO_LISTEN_ADDR` | `:8080` | Proxy bind address |
+| `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
+| `KOTRO_ENABLE_CACHE` | `true` | Semantic SSE cache |
+| `KOTRO_ENABLE_REDACTION` | `true` | PII guardrail |
+| `KOTRO_ENABLE_COMPRESSION` | `true` | Context block dedup |
+| `KOTRO_TRUST_UPSTREAM_GATEWAY` | `false` | Honor `X-Tenant-ID` only from trusted proxy CIDRs |
 
 Full documentation: [github.com/kotro-labs/kotro-proxy-engine](https://github.com/kotro-labs/kotro-proxy-engine)
 
 ## Other install channels
 
-- **Homebrew:** `brew tap kotro-labs/tap && brew install kortolabs-proxy`
-- **VS Code / Cursor:** [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine)
+- **Homebrew:** `brew tap kotro-labs/tap && brew install kotro-proxy`
+- **VS Code / Cursor:** [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine)
 - **GitHub Releases:** [Download binaries](https://github.com/kotro-labs/kotro-proxy-engine/releases)
 
 ## License

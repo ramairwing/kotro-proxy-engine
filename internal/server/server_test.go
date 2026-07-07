@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/server"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/server"
 )
 
 func TestPprofEnabled(t *testing.T) {

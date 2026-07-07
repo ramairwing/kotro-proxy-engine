@@ -105,8 +105,8 @@ func (r *Registry) Snapshot() DashboardSnapshot {
 
 	totals := r.gatherTotals()
 	
-	compBytes := totals["korto_compressor_bytes_saved_total"]
-	cacheBytes := totals["korto_cache_replay_bytes_total"]
+	compBytes := totals["kotro_compressor_bytes_saved_total"]
+	cacheBytes := totals["kotro_cache_replay_bytes_total"]
 	tokensSaved := (compBytes + cacheBytes) / 4.0
 	dollarsSaved := tokensSaved * 0.000003
 
@@ -118,24 +118,24 @@ func (r *Registry) Snapshot() DashboardSnapshot {
 		EstimatedDollarsSaved:    dollarsSaved,
 		CacheReplayBytesTotal:    cacheBytes,
 		CompressorBytesSaved:     compBytes,
-		CompressorBlocksStripped: totals["korto_compressor_blocks_stripped_total"],
-		CompressorScopesActive:   totals["korto_compressor_scopes_active"],
-		RedactionsTotal:          totals["korto_redactions_total"],
-		CacheEntries:             totals["korto_cache_entries"],
-		RequestsTotal:            totals["korto_requests_total"],
+		CompressorBlocksStripped: totals["kotro_compressor_blocks_stripped_total"],
+		CompressorScopesActive:   totals["kotro_compressor_scopes_active"],
+		RedactionsTotal:          totals["kotro_redactions_total"],
+		CacheEntries:             totals["kotro_cache_entries"],
+		RequestsTotal:            totals["kotro_requests_total"],
 		RecentRequests:           recent,
 	}
 }
 
 func (r *Registry) gatherTotals() map[string]float64 {
 	out := map[string]float64{
-		"korto_compressor_bytes_saved_total":     0,
-		"korto_cache_replay_bytes_total":         0,
-		"korto_compressor_blocks_stripped_total": 0,
-		"korto_compressor_scopes_active":       0,
-		"korto_redactions_total":               0,
-		"korto_cache_entries":                  0,
-		"korto_requests_total":                 0,
+		"kotro_compressor_bytes_saved_total":     0,
+		"kotro_cache_replay_bytes_total":         0,
+		"kotro_compressor_blocks_stripped_total": 0,
+		"kotro_compressor_scopes_active":       0,
+		"kotro_redactions_total":               0,
+		"kotro_cache_entries":                  0,
+		"kotro_requests_total":                 0,
 	}
 	mfs, err := r.prom.Gather()
 	if err != nil {
@@ -144,13 +144,13 @@ func (r *Registry) gatherTotals() map[string]float64 {
 	for _, mf := range mfs {
 		name := mf.GetName()
 		switch name {
-		case "korto_compressor_bytes_saved_total",
-			"korto_cache_replay_bytes_total",
-			"korto_compressor_blocks_stripped_total",
-			"korto_compressor_scopes_active",
-			"korto_cache_entries":
+		case "kotro_compressor_bytes_saved_total",
+			"kotro_cache_replay_bytes_total",
+			"kotro_compressor_blocks_stripped_total",
+			"kotro_compressor_scopes_active",
+			"kotro_cache_entries":
 			out[name] = sumMetricFamily(mf)
-		case "korto_redactions_total", "korto_requests_total":
+		case "kotro_redactions_total", "kotro_requests_total":
 			out[name] = sumMetricFamily(mf)
 		}
 	}

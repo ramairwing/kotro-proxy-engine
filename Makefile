@@ -3,8 +3,8 @@
 build: proxy mock
 
 proxy:
-	cd rust && CARGO_TARGET_DIR=../bin/rust-target cargo build --release -p korto-proxy
-	cp bin/rust-target/release/korto-proxy bin/kortolabs-proxy
+	cd rust && CARGO_TARGET_DIR=../bin/rust-target cargo build --release -p kotro-proxy
+	cp bin/rust-target/release/kotro-proxy bin/kotro-proxy
 
 mock:
 	go build -o bin/mock-upstream ./cmd/mockupstream
@@ -17,7 +17,7 @@ bench:
 
 run: build
 	@echo "Start mock upstream: bin/mock-upstream"
-	@echo "Start proxy: KORTO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kortolabs-proxy"
+	@echo "Start proxy: KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kotro-proxy"
 
 dev: build
 	bash scripts/dev-up.sh
@@ -32,10 +32,10 @@ rust-test:
 	cd rust && cargo test
 
 rust-build:
-	cd rust && CARGO_TARGET_DIR=target cargo build --release -p korto-proxy
+	cd rust && CARGO_TARGET_DIR=target cargo build --release -p kotro-proxy
 
 rust-run:
-	cd rust && cargo run -p korto-proxy
+	cd rust && cargo run -p kotro-proxy
 
 rust-cancel-audit:
 	bash benchmarks/run_rust_audit.sh
@@ -62,7 +62,7 @@ sync-brand-icon:
 	bash scripts/sync-brand-icon.sh
 
 clean:
-	rm -rf bin/ kortolabs-cache.db benchmarks/.audit-logs
+	rm -rf bin/ kotro-cache.db benchmarks/.audit-logs
 
 docker-build:
 	docker-compose build

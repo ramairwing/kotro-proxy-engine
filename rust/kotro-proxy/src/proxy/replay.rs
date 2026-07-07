@@ -81,6 +81,6 @@ mod tests {
             crate::metrics::MetricsRegistry::new(),
         );
         let first = stream.next().await.unwrap().unwrap();
-        assert!(first.starts_with(b": kortolabs"));
+        assert!(first.starts_with(b": kotrolabs"));
     }
 }

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/server"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/server"
 )
 
 func TestDashboardPageAndAPI(t *testing.T) {

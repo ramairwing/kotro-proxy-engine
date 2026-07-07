@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
 )
 
 type turnStat struct {

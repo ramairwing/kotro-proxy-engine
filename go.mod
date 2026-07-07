@@ -1,4 +1,4 @@
-module github.com/kortolabs/proxy-engine
+module github.com/kotro-labs/proxy-engine
 
 go 1.24
 

@@ -77,7 +77,7 @@ export class ProxyStatusBar implements vscode.Disposable {
     this.telemetryAddr = telemetryAddr;
     this.dashboardUrl = `${telemetryBaseUrl(telemetryAddr)}/dashboard`;
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
-    this.item.command = 'korto.connectCursor';
+    this.item.command = 'kotro.connectCursor';
     this.item.tooltip = 'Kotro Proxy Status';
     this.setOffline();
     this.item.show();
@@ -153,9 +153,9 @@ export class ProxyStatusBar implements vscode.Disposable {
         this.item.tooltip = `Proxy is up, but no traffic detected in 5m.\nCursor Auto bypasses local proxies.\nClick to run "Connect Cursor" setup wizard.`;
         if (!this.hasWarnedIdle) {
           this.hasWarnedIdle = true;
-          vscode.window.showWarningMessage('Korto is running, but no traffic detected. Are you using Cursor Auto? Auto bypasses local proxies.', 'Connect Cursor').then(res => {
+          vscode.window.showWarningMessage('Kotro is running, but no traffic detected. Are you using Cursor Auto? Auto bypasses local proxies.', 'Connect Cursor').then(res => {
             if (res === 'Connect Cursor') {
-              vscode.commands.executeCommand('korto.connectCursor');
+              vscode.commands.executeCommand('kotro.connectCursor');
             }
           });
         }
@@ -163,7 +163,7 @@ export class ProxyStatusBar implements vscode.Disposable {
       } else {
         this.item.text = `$(pulse) Kotro: ${label} · ${tokensSaved} saved`;
         trafficHint = label === 'ready' || label === 'idle'
-          ? '\nNo LLM traffic yet — run "Korto: Verify Cache"'
+          ? '\nNo LLM traffic yet — run "Kotro: Verify Cache"'
           : '';
         this.item.tooltip = `Total Saved: ${tokensSaved} tokens (${dollarsSaved})\nCache Hit Rate (5m): ${hitRate}\nLast result: ${label}${trafficHint}\nClick for connection options`;
       }

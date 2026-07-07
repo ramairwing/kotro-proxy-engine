@@ -29,7 +29,7 @@ export default function () {
   });
   check(res, {
     'status 200': (r) => r.status === 200,
-    'cache hit': (r) => r.headers['X-Kortolabs-Cache'] === 'HIT',
+    'cache hit': (r) => r.headers['X-Kotrolabs-Cache'] === 'HIT',
   });
   sleep(0.01);
 }

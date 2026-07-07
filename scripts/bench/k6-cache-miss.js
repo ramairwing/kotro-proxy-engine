@@ -26,7 +26,7 @@ export default function () {
   });
   check(res, {
     'status 200': (r) => r.status === 200,
-    'cache miss': (r) => !r.headers['X-Kortolabs-Cache'],
+    'cache miss': (r) => !r.headers['X-Kotrolabs-Cache'],
   });
   sleep(0.05);
 }

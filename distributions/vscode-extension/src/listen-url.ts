@@ -18,7 +18,7 @@ export function telemetryBaseUrl(metricsAddr: string): string {
   return listenBaseUrl(metricsAddr);
 }
 
-/** Convert editor setting to KORTO_* host:port env form. */
+/** Convert editor setting to KOTRO_* host:port env form. */
 export function addrForEnv(addrOrUrl: string): string {
   const trimmed = addrOrUrl.trim();
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {

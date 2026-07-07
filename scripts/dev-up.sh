@@ -15,7 +15,7 @@ bin/mock-upstream &
 MOCK_PID=$!
 sleep 0.5
 
-KORTO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kortolabs-proxy &
+KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kotro-proxy &
 PROXY_PID=$!
 sleep 0.5
 
@@ -25,7 +25,7 @@ echo ""
 echo "OpenAI streaming:"
 echo 'curl -N http://127.0.0.1:8080/v1/chat/completions \'
 echo '  -H "Content-Type: application/json" \'
-echo '  -d '"'"'{"model":"gpt-4","stream":true,"messages":[{"role":"user","content":"hello kortolabs"}]}'"'"
+echo '  -d '"'"'{"model":"gpt-4","stream":true,"messages":[{"role":"user","content":"hello kotrolabs"}]}'"'"
 echo ""
 echo "Anthropic streaming:"
 echo 'curl -N http://127.0.0.1:8080/v1/messages \'

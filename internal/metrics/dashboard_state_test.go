@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
 )
 
 func TestSnapshotCacheHitRate5m(t *testing.T) {

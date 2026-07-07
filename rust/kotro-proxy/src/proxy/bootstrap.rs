@@ -2,7 +2,7 @@
 
 use bytes::Bytes;
 
-pub const BOOTSTRAP_COMMENT: &str = ": kortolabs bootstrap stream\n\n";
+pub const BOOTSTRAP_COMMENT: &str = ": kotrolabs bootstrap stream\n\n";
 
 pub fn bootstrap_bytes() -> Bytes {
     Bytes::from_static(BOOTSTRAP_COMMENT.as_bytes())

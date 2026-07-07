@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
 )
 
 // ChatCompletionRequest is the inbound payload from local IDE agents.

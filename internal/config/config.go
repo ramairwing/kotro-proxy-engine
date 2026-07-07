@@ -1,4 +1,4 @@
-// Package config loads runtime settings for the KortoLabs proxy engine.
+// Package config loads runtime settings for the Kotro Labs proxy engine.
 package config
 
 import (
@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
 )
 
 // Config holds all tunable proxy parameters.
@@ -69,19 +69,19 @@ type Config struct {
 // Load reads configuration from environment variables with sensible defaults
 // for local development against the mock upstream on port 9000.
 func Load() Config {
-	strategy, err := cache.ParseStrategy(envOr("KORTO_CACHE_KEY_STRATEGY", ""))
+	strategy, err := cache.ParseStrategy(envOr("KOTRO_CACHE_KEY_STRATEGY", ""))
 	if err != nil {
 		slog.Default().Warn(
-			"invalid KORTO_CACHE_KEY_STRATEGY; falling back to window_n",
+			"invalid KOTRO_CACHE_KEY_STRATEGY; falling back to window_n",
 			"err", err,
-			"value", os.Getenv("KORTO_CACHE_KEY_STRATEGY"),
+			"value", os.Getenv("KOTRO_CACHE_KEY_STRATEGY"),
 		)
 	}
 
-	profile := envOr("KORTO_PROFILE", "")
+	profile := envOr("KOTRO_PROFILE", "")
 
-	enableRedaction := envBoolOr("KORTO_ENABLE_REDACTION", true)
-	enableCompression := envBoolOr("KORTO_ENABLE_COMPRESSION", true)
+	enableRedaction := envBoolOr("KOTRO_ENABLE_REDACTION", true)
+	enableCompression := envBoolOr("KOTRO_ENABLE_COMPRESSION", true)
 
 	// Apply IDE Profile Presets
 	switch profile {
@@ -98,15 +98,15 @@ func Load() Config {
 		slog.Default().Warn(
 			"PII redaction is disabled; secrets may be forwarded upstream",
 			"profile", profile,
-			"KORTO_ENABLE_REDACTION", os.Getenv("KORTO_ENABLE_REDACTION"),
+			"KOTRO_ENABLE_REDACTION", os.Getenv("KOTRO_ENABLE_REDACTION"),
 		)
 	}
 
-	fallbackURL := envOr("KORTO_FALLBACK_URL", "")
-	if os.Getenv("KORTO_FALLBACK_URL") != "" {
+	fallbackURL := envOr("KOTRO_FALLBACK_URL", "")
+	if os.Getenv("KOTRO_FALLBACK_URL") != "" {
 		if _, err := url.Parse(fallbackURL); err != nil {
 			slog.Default().Warn(
-				"invalid KORTO_FALLBACK_URL; failover disabled",
+				"invalid KOTRO_FALLBACK_URL; failover disabled",
 				"err", err,
 				"value", fallbackURL,
 			)
@@ -115,29 +115,29 @@ func Load() Config {
 	}
 
 	return Config{
-		ListenAddr:            envOr("KORTO_LISTEN_ADDR", ":8080"),
-		UpstreamURL:           envOr("KORTO_UPSTREAM_URL", "http://127.0.0.1:9000"),
+		ListenAddr:            envOr("KOTRO_LISTEN_ADDR", ":8080"),
+		UpstreamURL:           envOr("KOTRO_UPSTREAM_URL", "http://127.0.0.1:9000"),
 		FallbackURL:           fallbackURL,
-		CacheDBPath:           envOr("KORTO_CACHE_DB", "./kortolabs-cache.db"),
-		ReadTimeout:           envDurationOr("KORTO_READ_TIMEOUT", 30*time.Second),
-		WriteTimeout:          envDurationOr("KORTO_WRITE_TIMEOUT", 0),
-		IdleTimeout:           envDurationOr("KORTO_IDLE_TIMEOUT", 120*time.Second),
-		EnableCache:           envBoolOr("KORTO_ENABLE_CACHE", true),
+		CacheDBPath:           envOr("KOTRO_CACHE_DB", "./kotro-cache.db"),
+		ReadTimeout:           envDurationOr("KOTRO_READ_TIMEOUT", 30*time.Second),
+		WriteTimeout:          envDurationOr("KOTRO_WRITE_TIMEOUT", 0),
+		IdleTimeout:           envDurationOr("KOTRO_IDLE_TIMEOUT", 120*time.Second),
+		EnableCache:           envBoolOr("KOTRO_ENABLE_CACHE", true),
 		EnableRedaction:       enableRedaction,
 		EnableCompression:     enableCompression,
-		CacheHitDelay:         envDurationOr("KORTO_CACHE_HIT_DELAY_MS", 2*time.Millisecond),
-		EnablePprof:           envBoolOr("KORTO_ENABLE_PPROF", false),
-		CacheTTL:              envFlexibleDurationOr("KORTO_CACHE_TTL", 24*time.Hour),
-		CacheEvictionInterval: envFlexibleDurationOr("KORTO_EVICTION_INTERVAL", 10*time.Minute),
-		MaxRequestBodyBytes:   envInt64Or("KORTO_MAX_REQUEST_BODY_BYTES", 10<<20),
-		TrustUpstreamGateway:  envBoolOr("KORTO_TRUST_UPSTREAM_GATEWAY", false),
-		TrustedProxyCIDRs:     envOr("KORTO_TRUSTED_PROXY_CIDRS", ""),
-		CompressorMaxScopes:   int(envInt64Or("KORTO_COMPRESSOR_MAX_SCOPES", 10_000)),
-		CompressorScopeTTL:    envFlexibleDurationOr("KORTO_COMPRESSOR_SCOPE_TTL", time.Hour),
-		EnableMetrics:         envBoolOr("KORTO_ENABLE_METRICS", true),
-		MetricsAddr:           envOr("KORTO_METRICS_ADDR", "127.0.0.1:9090"),
+		CacheHitDelay:         envDurationOr("KOTRO_CACHE_HIT_DELAY_MS", 2*time.Millisecond),
+		EnablePprof:           envBoolOr("KOTRO_ENABLE_PPROF", false),
+		CacheTTL:              envFlexibleDurationOr("KOTRO_CACHE_TTL", 24*time.Hour),
+		CacheEvictionInterval: envFlexibleDurationOr("KOTRO_EVICTION_INTERVAL", 10*time.Minute),
+		MaxRequestBodyBytes:   envInt64Or("KOTRO_MAX_REQUEST_BODY_BYTES", 10<<20),
+		TrustUpstreamGateway:  envBoolOr("KOTRO_TRUST_UPSTREAM_GATEWAY", false),
+		TrustedProxyCIDRs:     envOr("KOTRO_TRUSTED_PROXY_CIDRS", ""),
+		CompressorMaxScopes:   int(envInt64Or("KOTRO_COMPRESSOR_MAX_SCOPES", 10_000)),
+		CompressorScopeTTL:    envFlexibleDurationOr("KOTRO_COMPRESSOR_SCOPE_TTL", time.Hour),
+		EnableMetrics:         envBoolOr("KOTRO_ENABLE_METRICS", true),
+		MetricsAddr:           envOr("KOTRO_METRICS_ADDR", "127.0.0.1:9090"),
 		CacheKeyStrategy:      strategy,
-		CacheWindowSize:       int(envInt64Or("KORTO_CACHE_WINDOW_SIZE", 4)),
+		CacheWindowSize:       int(envInt64Or("KOTRO_CACHE_WINDOW_SIZE", 4)),
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kortolabs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
 )
 
 const (

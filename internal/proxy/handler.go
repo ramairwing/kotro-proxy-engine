@@ -13,10 +13,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/compressor"
-	"github.com/kortolabs/proxy-engine/internal/models"
-	"github.com/kortolabs/proxy-engine/internal/optimizer"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/optimizer"
 )
 
 // Handler intercepts OpenAI-compatible POST /v1/chat/completions streams.

@@ -145,7 +145,7 @@ def render(data: dict[str, Any]) -> str:
 | **Date (UTC)** | `{meta['date_utc']}` |
 | **Host** | `{meta['host']}` |
 | **Upstream** | `{meta['upstream']}` |
-| **Config snapshot** | `KORTO_ENABLE_CACHE=true`, `KORTO_ENABLE_COMPRESSION=true`, `KORTO_ENABLE_REDACTION=true` |
+| **Config snapshot** | `KOTRO_ENABLE_CACHE=true`, `KOTRO_ENABLE_COMPRESSION=true`, `KOTRO_ENABLE_REDACTION=true` |
 
 ---
 
@@ -188,7 +188,7 @@ def render(data: dict[str, Any]) -> str:
 
 | Scenario | p50 (ms) | p95 (ms) | p99 (ms) | Notes |
 |----------|----------|----------|----------|-------|
-| Cache HIT (replay) | {hit['p50_ms']} | {hit['p95_ms']} | {hit['p99_ms']} | `X-KortoLabs-Cache: HIT` |
+| Cache HIT (replay) | {hit['p50_ms']} | {hit['p95_ms']} | {hit['p99_ms']} | `X-Kotro-Cache: HIT` |
 | Cache MISS (upstream) | {miss['p50_ms']} | {miss['p95_ms']} | {miss['p99_ms']} | unique prompts |
 
 **Command:** `make load-test SCENARIO=hit` / `SCENARIO=miss`

@@ -1,21 +1,21 @@
-# Korto Proxy Engine
+# Kotro Proxy Engine
 
 <p align="center">
-  <img src="distributions/shared/media/icon.png" alt="Korto" width="96" height="96" />
+  <img src="distributions/shared/media/icon.png" alt="Kotro" width="96" height="96" />
 </p>
 
 [![CI](https://github.com/kotro-labs/kotro-proxy-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/kotro-labs/kotro-proxy-engine/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/kotro-labs/kotro-proxy-engine)](https://github.com/kotro-labs/kotro-proxy-engine/releases)
-[![npm](https://img.shields.io/npm/v/@kortosystems/proxy-engine)](https://www.npmjs.com/package/@kortosystems/proxy-engine)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/kortosystems.kortolabs-proxy-engine?label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine)
+[![npm](https://img.shields.io/npm/v/@kotro-labs/proxy-engine)](https://www.npmjs.com/package/@kotro-labs/proxy-engine)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/kotrolabs.kotro-proxy-engine?label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine)
 
 **The open-source, single-binary local AI proxy** — intercept streaming LLM traffic from OpenAI and Anthropic SDKs, cut token waste, and keep secrets off the wire.
 
-Korto fills the gap between local agent runtimes (Cursor, Claude Code, custom SDK clients) and cloud providers. It is designed as the premier self-hosted alternative to hosted gateways like TokenShift: one binary, no SaaS dependency, full control over cache, redaction, and context compression.
+Kotro fills the gap between local agent runtimes (Cursor, Claude Code, custom SDK clients) and cloud providers. It is designed as the premier self-hosted alternative to hosted gateways like TokenShift: one binary, no SaaS dependency, full control over cache, redaction, and context compression.
 
 ## The Benchmark Proof (99.3% Cost Reduction)
 
-By coordinating local semantic caching with upstream prefix caching (like DeepSeek V4 and Qwen), Korto radically reduces inference costs for heavy agent loops. 
+By coordinating local semantic caching with upstream prefix caching (like DeepSeek V4 and Qwen), Kotro radically reduces inference costs for heavy agent loops. 
 
 In a standard 3-turn codebase benchmark:
 - **Turn 1**: 2042 tokens sent.
@@ -40,11 +40,11 @@ In a standard 3-turn codebase benchmark:
 | Channel | Command |
 |---------|---------|
 | **Docker** | `docker-compose up` (mock upstream + Rust proxy) |
-| **npm** | `npm install -g @kortosystems/proxy-engine` → `kortolabs-proxy` |
-| **Homebrew** | `brew tap kotro-labs/tap && brew trust kotro-labs/tap && brew install kortolabs-proxy` |
-| **VS Code / Cursor** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine) (status bar + dashboard link) |
+| **npm** | `npm install -g @kotro-labs/proxy-engine` → `kotro-proxy` |
+| **Homebrew** | `brew tap kotro-labs/tap && brew trust kotro-labs/tap && brew install kotro-proxy` |
+| **VS Code / Cursor** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) (status bar + dashboard link) |
 | **GitHub Release** | [Download binary](https://github.com/kotro-labs/kotro-proxy-engine/releases) for your platform |
-| **From source** | `make build` or `cd rust && cargo run -p korto-proxy` |
+| **From source** | `make build` or `cd rust && cargo run -p kotro-proxy` |
 
 Registry publish runs automatically on `v*` tags when `NPM_TOKEN` and `VSCE_PAT` secrets are configured. Marketplace uses [marketplace-publish.yml](.github/workflows/marketplace-publish.yml) (see [distributions/MARKETPLACE-AUTOMATION.md](distributions/MARKETPLACE-AUTOMATION.md)).
 
@@ -52,7 +52,7 @@ Registry publish runs automatically on `v*` tags when `NPM_TOKEN` and `VSCE_PAT`
 
 ```bash
 git clone git@github.com:kotro-labs/kotro-proxy-engine.git
-cd korto-proxy-engine
+cd kotro-proxy-engine
 
 make build
 make test
@@ -61,7 +61,7 @@ make test
 bin/mock-upstream
 
 # Terminal B: proxy (:8080)
-KORTO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kortolabs-proxy
+KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kotro-proxy
 
 # Or both:
 make dev
@@ -88,27 +88,27 @@ curl -N http://127.0.0.1:8080/v1/messages \
   -d '{"model":"claude-3-5-sonnet-20241022","max_tokens":256,"stream":true,"messages":[{"role":"user","content":"hello"}]}'
 ```
 
-Cache hits return `X-KortoLabs-Cache: HIT`.
+Cache hits return `X-Kotro-Cache: HIT`.
 
-Local dashboard: [http://127.0.0.1:9090/dashboard](http://127.0.0.1:9090/dashboard) (requires `KORTO_ENABLE_METRICS=true`).
+Local dashboard: [http://127.0.0.1:9090/dashboard](http://127.0.0.1:9090/dashboard) (requires `KOTRO_ENABLE_METRICS=true`).
 
 ## Configuration
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `KORTO_LISTEN_ADDR` | `:8080` | Proxy bind address |
-| `KORTO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
-| `KORTO_ENABLE_CACHE` | `true` | Semantic SSE cache |
-| `KORTO_ENABLE_REDACTION` | `true` | Local PII guardrail |
-| `KORTO_ENABLE_COMPRESSION` | `true` | Context deduplication |
-| `KORTO_CACHE_HIT_DELAY_MS` | `2` | Replay pacing on cache hits |
-| `KORTO_CACHE_TTL` | `24h` | Cache entry lifetime (`0` disables expiry) |
-| `KORTO_EVICTION_INTERVAL` | `10m` | Background sweep for expired keys |
-| `KORTO_ENABLE_PPROF` | `false` | Expose `/debug/pprof` for leak audits |
-| `KORTO_ENABLE_METRICS` | `true` | Expose `/metrics` and `/dashboard` on `KORTO_METRICS_ADDR` (default `127.0.0.1:9090`) |
-| `KORTO_METRICS_ADDR` | `127.0.0.1:9090` | Isolated telemetry bind address |
-| `KORTO_CACHE_KEY_STRATEGY` | `window_n` | Cache key material: `latest_only`, `window_n`, `full_digest` |
-| `KORTO_CACHE_WINDOW_SIZE` | `4` | Trailing non-system turns hashed when strategy is `window_n` |
+| `KOTRO_LISTEN_ADDR` | `:8080` | Proxy bind address |
+| `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
+| `KOTRO_ENABLE_CACHE` | `true` | Semantic SSE cache |
+| `KOTRO_ENABLE_REDACTION` | `true` | Local PII guardrail |
+| `KOTRO_ENABLE_COMPRESSION` | `true` | Context deduplication |
+| `KOTRO_CACHE_HIT_DELAY_MS` | `2` | Replay pacing on cache hits |
+| `KOTRO_CACHE_TTL` | `24h` | Cache entry lifetime (`0` disables expiry) |
+| `KOTRO_EVICTION_INTERVAL` | `10m` | Background sweep for expired keys |
+| `KOTRO_ENABLE_PPROF` | `false` | Expose `/debug/pprof` for leak audits |
+| `KOTRO_ENABLE_METRICS` | `true` | Expose `/metrics` and `/dashboard` on `KOTRO_METRICS_ADDR` (default `127.0.0.1:9090`) |
+| `KOTRO_METRICS_ADDR` | `127.0.0.1:9090` | Isolated telemetry bind address |
+| `KOTRO_CACHE_KEY_STRATEGY` | `window_n` | Cache key material: `latest_only`, `window_n`, `full_digest` |
+| `KOTRO_CACHE_WINDOW_SIZE` | `4` | Trailing non-system turns hashed when strategy is `window_n` |
 
 ### Cache key strategies
 
@@ -120,11 +120,11 @@ Local dashboard: [http://127.0.0.1:9090/dashboard](http://127.0.0.1:9090/dashboa
 
 `latest_only` can return a cache hit when two agent sessions share the same final user phrase but different tool outputs in between (silent state corruption). Prefer `window_n` or `full_digest` in production.
 
-Prometheus exposes the active strategy as `korto_cache_key_strategy{strategy,window_size}`.
+Prometheus exposes the active strategy as `kotro_cache_key_strategy{strategy,window_size}`.
 
 ### Deployment Profiles & IDE Presets
 
-You can use the `KORTO_PROFILE` environment variable for zero-friction setup:
+You can use the `KOTRO_PROFILE` environment variable for zero-friction setup:
 
 | Profile | Listen | Cache strategy | Recommended IDE |
 |---------|--------|----------------|-----------------|
@@ -137,7 +137,7 @@ For advanced control:
 | Profile | Listen | Cache strategy | Scope / trust |
 |---------|--------|----------------|---------------|
 | **Local dev** | `:8080` | `window_n` | Default credential-derived scope |
-| **Trusted gateway** | `0.0.0.0:8080` | `window_n` | `KORTO_TRUST_UPSTREAM_GATEWAY=true` + `KORTO_TRUSTED_PROXY_CIDRS` |
+| **Trusted gateway** | `0.0.0.0:8080` | `window_n` | `KOTRO_TRUST_UPSTREAM_GATEWAY=true` + `KOTRO_TRUSTED_PROXY_CIDRS` |
 | **Shared multi-tenant** | `0.0.0.0:8080` | `full_digest` | Gateway headers + trusted proxy CIDRs; telemetry on loopback only |
 
 ## Cancel-storm leak audit (k6 + pprof)
@@ -152,14 +152,14 @@ make cancel-audit
 K6_VUS=500 K6_DURATION=30s make cancel-audit
 ```
 
-Requires `KORTO_ENABLE_PPROF=true` (set automatically by `run_audit.sh`). Pass criteria: post-stress goroutine count within ±5 of baseline.
+Requires `KOTRO_ENABLE_PPROF=true` (set automatically by `run_audit.sh`). Pass criteria: post-stress goroutine count within ±5 of baseline.
 
 ## Rust Phase 2
 
 Go Phase 1 is the behavioral reference. The Rust port lives in `rust/`:
 
 ```bash
-cd rust && cargo test && cargo run -p korto-proxy
+cd rust && cargo test && cargo run -p kotro-proxy
 ```
 
 Architecture map: [docs/RUST-ARCHITECTURE.md](docs/RUST-ARCHITECTURE.md)
@@ -195,7 +195,7 @@ make bench
 ## Architecture
 
 ```
-IDE / SDK  →  kortolabs-proxy (:8080)
+IDE / SDK  →  kotro-proxy (:8080)
                  ├─ /v1/chat/completions  (intercept: cache · redact · compress)
                  ├─ /v1/messages          (intercept: cache · redact · compress)
                  └─ /v1/*                 (passthrough)

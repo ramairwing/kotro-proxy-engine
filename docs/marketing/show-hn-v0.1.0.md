@@ -1,4 +1,4 @@
-# Show HN: Korto Proxy Engine v0.1.0
+# Show HN: Kotro Proxy Engine v0.1.0
 
 **Title (paste into HN):**
 
@@ -10,7 +10,7 @@
 
 ## Post body (HN comment / first reply)
 
-I built Korto Proxy Engine — a single-binary local reverse proxy that sits between IDE agents (Cursor, Claude Code, custom SDKs) and OpenAI/Anthropic.
+I built Kotro Proxy Engine — a single-binary local reverse proxy that sits between IDE agents (Cursor, Claude Code, custom SDKs) and OpenAI/Anthropic.
 
 **Problem:** Hosted AI gateways add latency, cost, and a SaaS dependency. Generic proxies don't understand streaming SSE semantics, so cache hits still feel like network calls, and client disconnects leak goroutines.
 
@@ -18,7 +18,7 @@ I built Korto Proxy Engine — a single-binary local reverse proxy that sits bet
 
 - Intercepts `POST /v1/chat/completions` (OpenAI) and `POST /v1/messages` (Anthropic)
 - On cache miss: tees the upstream SSE stream, redacts secrets before upstream, compresses repeated context blocks
-- On cache hit: replays the full captured stream locally (`X-KortoLabs-Cache: HIT`)
+- On cache hit: replays the full captured stream locally (`X-Kotro-Cache: HIT`)
 - HTTP/2 SSE bootstrap flush so IDEs don't freeze waiting for the first upstream byte
 - Context-aware pipe teardown on client cancel (no goroutine leaks — verified with k6 + pprof)
 
@@ -33,13 +33,13 @@ I built Korto Proxy Engine — a single-binary local reverse proxy that sits bet
 
 ```bash
 # npm
-npm install -g @kortosystems/proxy-engine
-kortolabs-proxy
+npm install -g @kotro-labs/proxy-engine
+kotro-proxy
 
 # Homebrew (macOS)
 brew tap kotro-labs/tap
 brew trust kotro-labs/tap
-brew install kortolabs-proxy
+brew install kotro-proxy
 
 # Docker (mock upstream + Rust proxy)
 git clone https://github.com/kotro-labs/kotro-proxy-engine.git
@@ -48,7 +48,7 @@ cd kotro-proxy-engine && docker compose up
 
 Point your SDK at `http://localhost:8080/v1`.
 
-VS Code / Cursor extension: search **KortoLabs Proxy Engine** (publisher: `kortosystems`).
+VS Code / Cursor extension: search **Kotro Proxy Engine** (publisher: `kotrolabs`).
 
 **Cancel-storm audit** (the part I'm most proud of):
 

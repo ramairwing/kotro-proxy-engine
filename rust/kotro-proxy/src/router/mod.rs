@@ -53,7 +53,7 @@ impl AppState {
                 tracing::error!(
                     error = %err,
                     value = %cfg.trusted_proxy_cidrs,
-                    "invalid KORTO_TRUSTED_PROXY_CIDRS; failing safe with empty trusted-proxy whitelist"
+                    "invalid KOTRO_TRUSTED_PROXY_CIDRS; failing safe with empty trusted-proxy whitelist"
                 );
                 Vec::new()
             }

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/models"
-	"github.com/kortolabs/proxy-engine/internal/optimizer"
+	"github.com/kotro-labs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/optimizer"
 )
 
 func TestEnforceCacheMatrix_sortsContextFiles(t *testing.T) {

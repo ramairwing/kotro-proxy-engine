@@ -18,7 +18,7 @@ fi
 bash "${ROOT}/scripts/update-homebrew-shas.sh" "$TAG"
 
 cd "$ROOT"
-git add distributions/homebrew/Formula/kortolabs-proxy.rb distributions/homebrew-tap/Formula/kortolabs-proxy.rb
+git add distributions/homebrew/Formula/kotro-proxy.rb distributions/homebrew-tap/Formula/kotro-proxy.rb
 
 if git diff --cached --quiet; then
   echo "No formula changes to commit."

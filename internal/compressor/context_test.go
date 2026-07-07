@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
 )
 
 func tracker() *compressor.StateTracker {

@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/guardrail"
-	"github.com/kortolabs/proxy-engine/internal/metrics"
-	"github.com/kortolabs/proxy-engine/internal/models"
-	"github.com/kortolabs/proxy-engine/internal/sse"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/guardrail"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/sse"
 )
 
 // StreamFormat identifies provider-specific SSE semantics.
@@ -151,7 +151,7 @@ func (p *streamPipeline) replayCached(ctx context.Context, w http.ResponseWriter
 	}
 
 	setSSEHeaders(w)
-	w.Header().Set("X-KortoLabs-Cache", "HIT")
+	w.Header().Set("X-Kotro-Cache", "HIT")
 	w.WriteHeader(http.StatusOK)
 
 	if _, err := w.Write([]byte(sseBootstrapComment)); err != nil {

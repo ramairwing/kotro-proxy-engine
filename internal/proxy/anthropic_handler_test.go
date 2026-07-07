@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func TestAnthropicCacheMissThenHit(t *testing.T) {
@@ -53,7 +53,7 @@ func TestAnthropicCacheMissThenHit(t *testing.T) {
 	w2 := httptest.NewRecorder()
 	handler.ServeHTTP(w2, req2)
 
-	if w2.Header().Get("X-KortoLabs-Cache") != "HIT" {
+	if w2.Header().Get("X-Kotro-Cache") != "HIT" {
 		t.Fatal("expected anthropic cache hit header")
 	}
 }
@@ -113,13 +113,13 @@ func TestAnthropicCacheIsolation_TenantSeparation(t *testing.T) {
 		return w
 	}
 
-	if post("sk-ant-tenant-alpha-token-11111").Header().Get("X-KortoLabs-Cache") != "" {
+	if post("sk-ant-tenant-alpha-token-11111").Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("tenant-alpha first request should miss cache")
 	}
-	if post("sk-ant-tenant-beta-token-22222").Header().Get("X-KortoLabs-Cache") != "" {
+	if post("sk-ant-tenant-beta-token-22222").Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("tenant-beta must not hit tenant-alpha cache entry")
 	}
-	if got := post("sk-ant-tenant-alpha-token-11111").Header().Get("X-KortoLabs-Cache"); got != "HIT" {
+	if got := post("sk-ant-tenant-alpha-token-11111").Header().Get("X-Kotro-Cache"); got != "HIT" {
 		t.Fatalf("tenant-alpha second request should hit cache, got %q", got)
 	}
 }

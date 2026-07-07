@@ -11,9 +11,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/compressor"
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 // AnthropicHandler intercepts Anthropic POST /v1/messages streams.

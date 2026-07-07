@@ -2,7 +2,7 @@
 .gitignore
 bin/
 rust/target/
-kortolabs-cache.db
+kotro-cache.db
 *.db
 benchmarks/.audit-logs/
 .idea/

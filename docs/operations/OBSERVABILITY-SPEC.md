@@ -22,11 +22,11 @@
 |------------|---------------------|--------|
 | Liveness | `GET /healthz` → `{"status":"ok"}` | **Shipped** |
 | Structured logs | `slog` request logging (method, path, bearer presence) | **Shipped** |
-| Cache hit signal | Response header `X-KortoLabs-Cache: HIT` | **Shipped** |
-| Profiling | `/debug/pprof/*` when `KORTO_ENABLE_PPROF=true` | **Shipped** (dev/audit) |
-| Prometheus metrics | `GET /metrics` when `KORTO_ENABLE_METRICS=true` | **Shipped** (P0) |
+| Cache hit signal | Response header `X-Kotro-Cache: HIT` | **Shipped** |
+| Profiling | `/debug/pprof/*` when `KOTRO_ENABLE_PPROF=true` | **Shipped** (dev/audit) |
+| Prometheus metrics | `GET /metrics` when `KOTRO_ENABLE_METRICS=true` | **Shipped** (P0) |
 | OpenTelemetry traces | — | **Planned** (optional flag) |
-| Bundled dashboard | `GET /dashboard` when `KORTO_ENABLE_METRICS=true` | **Shipped** (P1) |
+| Bundled dashboard | `GET /dashboard` when `KOTRO_ENABLE_METRICS=true` | **Shipped** (P1) |
 
 ---
 
@@ -40,21 +40,21 @@ Content-Type: text/plain; version=0.0.4
 ```
 
 - Enabled by default in v0.2.0 (no sensitive label values)
-- Disable via `KORTO_ENABLE_METRICS=false` if needed
-- **Isolated listener:** telemetry binds to `KORTO_METRICS_ADDR` (default `127.0.0.1:9090`), separate from the LLM proxy socket (`KORTO_LISTEN_ADDR`)
+- Disable via `KOTRO_ENABLE_METRICS=false` if needed
+- **Isolated listener:** telemetry binds to `KOTRO_METRICS_ADDR` (default `127.0.0.1:9090`), separate from the LLM proxy socket (`KOTRO_LISTEN_ADDR`)
 
 ### 3.2 Dual-socket topology
 
 To prevent operational metrics from being scraped on a publicly bound proxy listener, Kotro uses unfused network sockets:
 
 ```
-Public / VPC ingress (KORTO_LISTEN_ADDR, e.g. 0.0.0.0:8080)
+Public / VPC ingress (KOTRO_LISTEN_ADDR, e.g. 0.0.0.0:8080)
 └── /v1/chat/completions
 └── /v1/messages
 └── /v1/* (passthrough)
 └── /healthz
 
-Localhost / pod-private (KORTO_METRICS_ADDR, default 127.0.0.1:9090)
+Localhost / pod-private (KOTRO_METRICS_ADDR, default 127.0.0.1:9090)
 └── /metrics
 └── /dashboard
 └── /api/dashboard
@@ -71,7 +71,7 @@ scrape_configs:
 
 ### 3.3 Naming convention
 
-Prefix: `korto_`  
+Prefix: `kotro_`  
 Labels: low cardinality only — never include API keys, prompts, or tenant IDs.
 
 ---
@@ -82,11 +82,11 @@ Labels: low cardinality only — never include API keys, prompts, or tenant IDs.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_requests_total` | Counter | `provider`, `route`, `stream` | Total intercepted requests |
-| `korto_request_duration_seconds` | Histogram | `provider`, `cache_status` | End-to-end handler time |
-| `korto_upstream_duration_seconds` | Histogram | `provider`, `status_class` | Upstream round-trip (miss path) |
-| `korto_request_body_bytes` | Histogram | `provider` | Incoming JSON body size |
-| `korto_errors_total` | Counter | `provider`, `error_class` | `error_class`: `body_limit`, `upstream`, `parse`, `timeout`, `internal` |
+| `kotro_requests_total` | Counter | `provider`, `route`, `stream` | Total intercepted requests |
+| `kotro_request_duration_seconds` | Histogram | `provider`, `cache_status` | End-to-end handler time |
+| `kotro_upstream_duration_seconds` | Histogram | `provider`, `status_class` | Upstream round-trip (miss path) |
+| `kotro_request_body_bytes` | Histogram | `provider` | Incoming JSON body size |
+| `kotro_errors_total` | Counter | `provider`, `error_class` | `error_class`: `body_limit`, `upstream`, `parse`, `timeout`, `internal` |
 
 `provider`: `openai` | `anthropic` | `passthrough`  
 `cache_status`: `hit` | `miss` | `bypass` (cache disabled or non-streaming)  
@@ -96,12 +96,12 @@ Labels: low cardinality only — never include API keys, prompts, or tenant IDs.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_cache_hits_total` | Counter | `provider` | Semantic cache hits |
-| `korto_cache_misses_total` | Counter | `provider` | Cache misses (upstream fetched) |
-| `korto_cache_stores_total` | Counter | `provider` | New entries written |
-| `korto_cache_replay_bytes_total` | Counter | `provider` | Bytes served from cache on hit |
-| `korto_cache_entries` | Gauge | — | Approximate live entries (post-eviction sweep) |
-| `korto_cache_evictions_total` | Counter | `reason` | `reason`: `ttl` | `manual` |
+| `kotro_cache_hits_total` | Counter | `provider` | Semantic cache hits |
+| `kotro_cache_misses_total` | Counter | `provider` | Cache misses (upstream fetched) |
+| `kotro_cache_stores_total` | Counter | `provider` | New entries written |
+| `kotro_cache_replay_bytes_total` | Counter | `provider` | Bytes served from cache on hit |
+| `kotro_cache_entries` | Gauge | — | Approximate live entries (post-eviction sweep) |
+| `kotro_cache_evictions_total` | Counter | `reason` | `reason`: `ttl` | `manual` |
 
 **Developer wedge UI mapping:**
 
@@ -112,10 +112,10 @@ Labels: low cardinality only — never include API keys, prompts, or tenant IDs.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_compressor_blocks_stripped_total` | Counter | — | Context blocks removed as duplicates |
-| `korto_compressor_bytes_saved_total` | Counter | — | Estimated bytes not sent upstream |
-| `korto_compressor_scopes_active` | Gauge | — | Current LRU entries |
-| `korto_compressor_scope_evictions_total` | Counter | `reason` | `reason`: `lru` | `ttl` |
+| `kotro_compressor_blocks_stripped_total` | Counter | — | Context blocks removed as duplicates |
+| `kotro_compressor_bytes_saved_total` | Counter | — | Estimated bytes not sent upstream |
+| `kotro_compressor_scopes_active` | Gauge | — | Current LRU entries |
+| `kotro_compressor_scope_evictions_total` | Counter | `reason` | `reason`: `lru` | `ttl` |
 
 Backed by: `internal/compressor/context.go` (`hashicorp/golang-lru/v2/expirable`) and Rust `moka` equivalent.
 
@@ -123,8 +123,8 @@ Backed by: `internal/compressor/context.go` (`hashicorp/golang-lru/v2/expirable`
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_redactions_total` | Counter | `pattern` | Secrets replaced before upstream |
-| `korto_redaction_restores_total` | Counter | — | Placeholders restored in stream |
+| `kotro_redactions_total` | Counter | `pattern` | Secrets replaced before upstream |
+| `kotro_redaction_restores_total` | Counter | — | Placeholders restored in stream |
 
 `pattern`: coarse bucket — `aws_key`, `api_key`, `email`, `connection_string`, `sk_token`, `other`  
 Never emit the matched secret or placeholder value.
@@ -133,8 +133,8 @@ Never emit the matched secret or placeholder value.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_scope_mode_total` | Counter | `mode` | `mode`: `credential` | `gateway_header` | `default` |
-| `korto_trusted_peer_rejections_total` | Counter | — | Gateway headers ignored (untrusted peer) |
+| `kotro_scope_mode_total` | Counter | `mode` | `mode`: `credential` | `gateway_header` | `default` |
+| `kotro_trusted_peer_rejections_total` | Counter | — | Gateway headers ignored (untrusted peer) |
 
 **Cardinality guard:** No per-tenant labels. Use aggregate counters only.
 
@@ -142,10 +142,10 @@ Never emit the matched secret or placeholder value.
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `korto_goroutines` | Gauge | — | `runtime.NumGoroutine()` sampled periodically |
-| `korto_process_resident_memory_bytes` | Gauge | — | From `runtime.MemStats` |
+| `kotro_goroutines` | Gauge | — | `runtime.NumGoroutine()` sampled periodically |
+| `kotro_process_resident_memory_bytes` | Gauge | — | From `runtime.MemStats` |
 
-For deep leak analysis, continue using `KORTO_ENABLE_PPROF=true` + `make cancel-audit`.
+For deep leak analysis, continue using `KOTRO_ENABLE_PPROF=true` + `make cancel-audit`.
 
 ---
 
@@ -167,10 +167,10 @@ Single-page view refreshed every 5s:
 
 | Panel | Source |
 |-------|--------|
-| Cache hit rate (last 5m) | `korto_cache_hits_total` / misses |
-| Tokens / bytes saved (compressor) | `korto_compressor_bytes_saved_total` delta |
-| Redactions this session | `korto_redactions_total` delta |
-| Active compressor scopes | `korto_compressor_scopes_active` |
+| Cache hit rate (last 5m) | `kotro_cache_hits_total` / misses |
+| Tokens / bytes saved (compressor) | `kotro_compressor_bytes_saved_total` delta |
+| Redactions this session | `kotro_redactions_total` delta |
+| Active compressor scopes | `kotro_compressor_scopes_active` |
 | Last 10 requests | ring buffer in memory (path + cache status only) |
 
 ### 6.2 VS Code extension integration
@@ -199,23 +199,23 @@ spec:
 
 | Alert | Expression (sketch) | Severity |
 |-------|---------------------|----------|
-| High error rate | `rate(korto_errors_total[5m]) / rate(korto_requests_total[5m]) > 0.05` | warning |
+| High error rate | `rate(kotro_errors_total[5m]) / rate(kotro_requests_total[5m]) > 0.05` | warning |
 | Cache hit rate drop | `hit_rate < 0.1` for 30m (baseline-dependent) | info |
-| Scope cardinality spike | `korto_compressor_scopes_active > 8000` | warning |
-| Goroutine growth | `deriv(korto_goroutines[10m]) > 10` | critical |
+| Scope cardinality spike | `kotro_compressor_scopes_active > 8000` | warning |
+| Goroutine growth | `deriv(kotro_goroutines[10m]) > 10` | critical |
 
 ---
 
 ## 8. OpenTelemetry (optional, v0.2.x)
 
-Env: `KORTO_ENABLE_OTEL=true`, `OTEL_EXPORTER_OTLP_ENDPOINT`
+Env: `KOTRO_ENABLE_OTEL=true`, `OTEL_EXPORTER_OTLP_ENDPOINT`
 
 | Span | Attributes |
 |------|------------|
-| `korto.request` | `provider`, `stream`, `cache_status` |
-| `korto.upstream` | `http.status_code`, `duration_ms` |
-| `korto.compress` | `blocks_stripped`, `bytes_saved` |
-| `korto.redact` | `redaction_count` |
+| `kotro.request` | `provider`, `stream`, `cache_status` |
+| `kotro.upstream` | `http.status_code`, `duration_ms` |
+| `kotro.compress` | `blocks_stripped`, `bytes_saved` |
+| `kotro.redact` | `redaction_count` |
 
 No prompt content, credentials, or tenant IDs on spans.
 
@@ -228,8 +228,8 @@ Populate from `make cancel-audit` and `make load-test`:
 | SLO | Target (initial) | Measurement |
 |-----|------------------|-------------|
 | Availability | 99.9% `/healthz` | Synthetic probe |
-| Cache hit latency p99 | < 50ms | `korto_request_duration_seconds{cache_status="hit"}` |
-| Upstream miss p99 | Provider-dependent | `korto_upstream_duration_seconds` |
+| Cache hit latency p99 | < 50ms | `kotro_request_duration_seconds{cache_status="hit"}` |
+| Upstream miss p99 | Provider-dependent | `kotro_upstream_duration_seconds` |
 | Cancel-storm stability | Goroutine delta ≤ 5 | `benchmarks/run_audit.sh` |
 | Error rate | < 1% under load | k6 mixed scenario |
 

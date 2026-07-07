@@ -28,21 +28,21 @@ WORKDIR /app/rust
 
 # Workspace manifest + lockfile for dependency layer caching.
 COPY rust/Cargo.toml rust/Cargo.lock ./
-COPY rust/korto-proxy/Cargo.toml korto-proxy/Cargo.toml
+COPY rust/kotro-proxy/Cargo.toml kotro-proxy/Cargo.toml
 
 # Dummy crate forces registry fetch without copying real sources.
-RUN mkdir -p korto-proxy/src \
-    && printf 'pub fn dummy() {}\n' > korto-proxy/src/lib.rs \
-    && printf 'fn main() {}\n' > korto-proxy/src/main.rs
+RUN mkdir -p kotro-proxy/src \
+    && printf 'pub fn dummy() {}\n' > kotro-proxy/src/lib.rs \
+    && printf 'fn main() {}\n' > kotro-proxy/src/main.rs
 
 ENV CARGO_TARGET_DIR=/app/rust/target
-RUN cargo build --release -p korto-proxy
+RUN cargo build --release -p kotro-proxy
 
 # Replace stub with real sources and rebuild application code only.
-RUN rm -rf korto-proxy/src
-COPY rust/korto-proxy/src korto-proxy/src
-RUN touch korto-proxy/src/main.rs korto-proxy/src/lib.rs \
-    && cargo build --release -p korto-proxy
+RUN rm -rf kotro-proxy/src
+COPY rust/kotro-proxy/src kotro-proxy/src
+RUN touch kotro-proxy/src/main.rs kotro-proxy/src/lib.rs \
+    && cargo build --release -p kotro-proxy
 
 # ==========================================
 # STAGE 3: Minimal production runtime
@@ -54,11 +54,11 @@ RUN apk add --no-cache ca-certificates curl
 WORKDIR /root
 
 COPY --from=go-builder /bin/mock-upstream .
-COPY --from=rust-builder /app/rust/target/release/korto-proxy .
+COPY --from=rust-builder /app/rust/target/release/kotro-proxy .
 
 RUN mkdir -p /root/data
 
 EXPOSE 8080 9000
 
 # Default: Rust high-performance proxy (override in Compose for mock-upstream).
-CMD ["./korto-proxy"]
+CMD ["./kotro-proxy"]

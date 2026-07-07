@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 // RedactionMap holds placeholder -> original value mappings for a single request.

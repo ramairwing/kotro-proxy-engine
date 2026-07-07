@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
 )
 
 // Passthrough forwards all other /v1/* requests to the upstream provider unchanged.

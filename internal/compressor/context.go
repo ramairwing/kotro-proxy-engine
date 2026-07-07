@@ -9,8 +9,8 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 const (

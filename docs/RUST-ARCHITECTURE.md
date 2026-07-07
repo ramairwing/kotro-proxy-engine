@@ -1,4 +1,4 @@
-# Korto Proxy Engine — Rust Architecture Map (Phase 2)
+# Kotro Proxy Engine — Rust Architecture Map (Phase 2)
 
 This document translates the **verified Go Phase 1 semantics** into a zero-cost Rust implementation suitable for cross-compilation, arXiv publication, and production deployment without a garbage collector.
 
@@ -39,7 +39,7 @@ Routing last avoids debugging HTTP/2 flush and redb TTL simultaneously. Storage 
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  korto-proxy (single binary)                            │
+│  kotro-proxy (single binary)                            │
 ├─────────────────────────────────────────────────────────┤
 │  axum 0.7+          HTTP router, extractor, middleware│
 │  tokio              async runtime, timers, signals      │
@@ -69,12 +69,12 @@ Routing last avoids debugging HTTP/2 flush and redb TTL simultaneously. Storage 
 ```
 rust/
 ├── Cargo.toml                 # workspace
-└── korto-proxy/
+└── kotro-proxy/
     ├── Cargo.toml
     └── src/
         ├── main.rs            # tokio::main, signal, graceful shutdown
         ├── lib.rs
-        ├── config.rs          # KORTO_* env → Config struct
+        ├── config.rs          # KOTRO_* env → Config struct
         ├── cache/
         │   ├── mod.rs
         │   ├── encoding.rs    # 8-byte TTL prefix (Phase 2.1) ✓
@@ -91,7 +91,7 @@ rust/
         │   └── context.rs     # block-hash dedup across turns
         ├── proxy/
         │   ├── mod.rs
-        │   ├── bootstrap.rs   # ": kortolabs bootstrap stream\n\n"
+        │   ├── bootstrap.rs   # ": kotrolabs bootstrap stream\n\n"
         │   ├── pipeline.rs    # redact_and_cache_stream
         │   ├── openai.rs      # chat/completions handler
         │   └── anthropic.rs   # messages handler
@@ -219,7 +219,7 @@ pub fn intercept_stream(
     cache: Arc<CacheStore>,
 ) -> SseStream {
     Box::pin(async_stream::try_stream! {
-        yield bootstrap::comment();           // ": kortolabs bootstrap stream\n\n"
+        yield bootstrap::comment();           // ": kotrolabs bootstrap stream\n\n"
 
         let mut captured = Vec::new();
         tokio::pin!(upstream);
@@ -263,7 +263,7 @@ where
 {
     let mut headers = sse_headers();
     headers.insert("x-accel-buffering", "no");
-    let bootstrap = Bytes::from_static(b": kortolabs bootstrap stream\n\n");
+    let bootstrap = Bytes::from_static(b": kotrolabs bootstrap stream\n\n");
     let stream = once(async move { Ok(bootstrap) }).chain(body);
     Ok((headers, Box::pin(stream)))
 }
@@ -277,12 +277,12 @@ Use `hyper::body::Body::data_frame` flush semantics via axum `BodyDataStream` wh
 
 | Env var | Go default | Rust default |
 |---------|------------|--------------|
-| `KORTO_LISTEN_ADDR` | `:8080` | `0.0.0.0:8080` |
-| `KORTO_UPSTREAM_URL` | `http://127.0.0.1:9000` | same |
-| `KORTO_CACHE_TTL` | `24h` | `Duration::from_secs(86400)` |
-| `KORTO_EVICTION_INTERVAL` | `10m` | `Duration::from_secs(600)` |
-| `KORTO_ENABLE_CACHE` | `true` | `true` |
-| `KORTO_ENABLE_PPROF` | `false` | `false` |
+| `KOTRO_LISTEN_ADDR` | `:8080` | `0.0.0.0:8080` |
+| `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | same |
+| `KOTRO_CACHE_TTL` | `24h` | `Duration::from_secs(86400)` |
+| `KOTRO_EVICTION_INTERVAL` | `10m` | `Duration::from_secs(600)` |
+| `KOTRO_ENABLE_CACHE` | `true` | `true` |
+| `KOTRO_ENABLE_PPROF` | `false` | `false` |
 
 ---
 

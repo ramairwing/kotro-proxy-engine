@@ -4,10 +4,10 @@
  */
 
 const BINARY_BASENAMES = {
-  'darwin-arm64': 'korto-proxy-aarch64-apple-darwin',
-  'darwin-x64': 'korto-proxy-x86_64-apple-darwin',
-  'linux-x64': 'korto-proxy-x86_64-unknown-linux-gnu',
-  'win32-x64': 'korto-proxy-x86_64-pc-windows-msvc.exe',
+  'darwin-arm64': 'kotro-proxy-aarch64-apple-darwin',
+  'darwin-x64': 'kotro-proxy-x86_64-apple-darwin',
+  'linux-x64': 'kotro-proxy-x86_64-unknown-linux-gnu',
+  'win32-x64': 'kotro-proxy-x86_64-pc-windows-msvc.exe',
 };
 
 /**

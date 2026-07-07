@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func TestProxyCacheMissThenHit(t *testing.T) {
@@ -66,7 +66,7 @@ func TestProxyCacheMissThenHit(t *testing.T) {
 	if w2.Code != http.StatusOK {
 		t.Fatalf("hit status %d", w2.Code)
 	}
-	if w2.Header().Get("X-KortoLabs-Cache") != "HIT" {
+	if w2.Header().Get("X-Kotro-Cache") != "HIT" {
 		t.Fatal("expected cache hit header")
 	}
 	scanner := bufio.NewScanner(w2.Body)
@@ -169,10 +169,10 @@ func TestProxyCacheHitWithCompressionEnabled(t *testing.T) {
 		return w
 	}
 
-	if post().Header().Get("X-KortoLabs-Cache") != "" {
+	if post().Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("first request should be a cache miss")
 	}
-	if got := post().Header().Get("X-KortoLabs-Cache"); got != "HIT" {
+	if got := post().Header().Get("X-Kotro-Cache"); got != "HIT" {
 		t.Fatalf("second identical request should hit cache, got %q", got)
 	}
 }
@@ -207,13 +207,13 @@ func TestCacheIsolation_TenantSeparation(t *testing.T) {
 		return w
 	}
 
-	if post("tenant-alpha").Header().Get("X-KortoLabs-Cache") != "" {
+	if post("tenant-alpha").Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("tenant-alpha first request should miss cache")
 	}
-	if post("tenant-beta").Header().Get("X-KortoLabs-Cache") != "" {
+	if post("tenant-beta").Header().Get("X-Kotro-Cache") != "" {
 		t.Fatal("tenant-beta must not hit tenant-alpha cache entry")
 	}
-	if got := post("tenant-alpha").Header().Get("X-KortoLabs-Cache"); got != "HIT" {
+	if got := post("tenant-alpha").Header().Get("X-Kotro-Cache"); got != "HIT" {
 		t.Fatalf("tenant-alpha second request should hit cache, got %q", got)
 	}
 }

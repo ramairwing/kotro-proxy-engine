@@ -1,5 +1,5 @@
 {
-  "name": "@kortosystems/proxy-engine",
+  "name": "@kotro-labs/proxy-engine",
   "version": "0.2.7",
   "description": "High-performance semantic caching AI proxy gateway with native Rust runtime.",
   "license": "MIT",
@@ -10,14 +10,14 @@
     "directory": "distributions/npm-cli"
   },
   "bin": {
-    "kortolabs-proxy": "./bin/index.js"
+    "kotro-proxy": "./bin/index.js"
   },
   "files": [
     "README.md",
     "media/icon.png",
     "bin/index.js",
     "lib/binary-target.js",
-    "bin/korto-proxy-*"
+    "bin/kotro-proxy-*"
   ],
   "engines": {
     "node": ">=16.0.0"

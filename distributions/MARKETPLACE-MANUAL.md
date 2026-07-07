@@ -3,8 +3,8 @@
 Use this when **Azure DevOps blocks PAT creation** (subscription required, 404 on token page, etc.).  
 No `VSCE_PAT`, no `vsce login`, no separate git repo.
 
-**Publisher:** [kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)  
-**Extension ID:** `kortosystems.kortolabs-proxy-engine`
+**Publisher:** [kotrolabs](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)  
+**Extension ID:** `kotrolabs.kotro-proxy-engine`
 
 ---
 
@@ -16,19 +16,19 @@ After you push a tag, CI builds and attaches the VSIX:
 
 https://github.com/kotro-labs/kotro-proxy-engine/releases
 
-Example: [v0.2.7](https://github.com/kotro-labs/kotro-proxy-engine/releases/tag/v0.2.7) → download **`kortolabs-proxy-engine.vsix`**
+Example: [v0.2.7](https://github.com/kotro-labs/kotro-proxy-engine/releases/tag/v0.2.7) → download **`kotro-proxy-engine.vsix`**
 
 ### 2. Upload on Marketplace
 
-1. Open [Manage publisher → kortosystems](https://marketplace.visualstudio.com/manage/publishers/kortosystems)
-2. Click **KortoLabs Proxy Engine**
+1. Open [Manage publisher → kotrolabs](https://marketplace.visualstudio.com/manage/publishers/kotrolabs)
+2. Click **Kotro Proxy Engine**
 3. Click **⋮** (or **Update**) → **Upload new version** / **Update**
-4. Drag **`kortolabs-proxy-engine.vsix`** from the GitHub Release
+4. Drag **`kotro-proxy-engine.vsix`** from the GitHub Release
 5. Confirm — version must match `package.json` inside the VSIX (e.g. `0.2.7`)
 
 ### 3. Verify
 
-- Overview: [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=kortosystems.kortolabs-proxy-engine)
+- Overview: [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine)
 - Version number matches the tag
 - Screenshots load (README uses absolute GitHub raw URLs)
 
@@ -39,7 +39,7 @@ Example: [v0.2.7](https://github.com/kotro-labs/kotro-proxy-engine/releases/tag/
 | Channel | On `git push tag v*` |
 |---------|----------------------|
 | GitHub Release + VSIX | ✅ CI |
-| npm `@kortosystems/proxy-engine` | ✅ CI (needs `NPM_TOKEN`) |
+| npm `@kotro-labs/proxy-engine` | ✅ CI (needs `NPM_TOKEN`) |
 | Homebrew tap | ✅ script after release |
 | **VS Code Marketplace** | ❌ **manual upload** (this doc) |
 

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/guardrail"
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/guardrail"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 func TestRedactAWSKey(t *testing.T) {

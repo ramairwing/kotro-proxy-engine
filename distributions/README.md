@@ -9,7 +9,7 @@ distributions/
 │   └── media/icon.png       # Canonical 128×128 brand icon (sync via make sync-brand-icon)
 ├── SECRETS.md                  # NPM_TOKEN + VSCE_PAT setup for CI publish
 ├── vscode-extension/           # Cursor / VS Code IDE sidecar
-├── npm-cli/                    # npm install -g @kortosystems/proxy-engine
+├── npm-cli/                    # npm install -g @kotro-labs/proxy-engine
 ├── homebrew/Formula/           # In-repo formula reference
 └── homebrew-tap/               # Standalone tap repo scaffold (copy to github.com/kotro-labs/homebrew-tap)
 ```
@@ -20,17 +20,17 @@ CI should upload cross-compiled binaries into each channel's `bin/` directory us
 
 | Platform | Asset |
 |----------|-------|
-| macOS Apple Silicon | `korto-proxy-aarch64-apple-darwin` |
-| macOS Intel | `korto-proxy-x86_64-apple-darwin` |
-| Linux x86_64 | `korto-proxy-x86_64-unknown-linux-gnu` |
-| Windows x86_64 | `korto-proxy-x86_64-pc-windows-msvc.exe` |
+| macOS Apple Silicon | `kotro-proxy-aarch64-apple-darwin` |
+| macOS Intel | `kotro-proxy-x86_64-apple-darwin` |
+| Linux x86_64 | `kotro-proxy-x86_64-unknown-linux-gnu` |
+| Windows x86_64 | `kotro-proxy-x86_64-pc-windows-msvc.exe` |
 
 Build example:
 
 ```bash
 cd rust
-cargo build --release -p korto-proxy
-cp target/release/korto-proxy ../distributions/npm-cli/bin/korto-proxy-$(rustc -vV | ...)
+cargo build --release -p kotro-proxy
+cp target/release/kotro-proxy ../distributions/npm-cli/bin/kotro-proxy-$(rustc -vV | ...)
 ```
 
 ## VS Code / Cursor extension
@@ -50,15 +50,15 @@ Pushing a `v*` tag triggers `.github/workflows/release.yml`, which cross-compile
 ```bash
 cd distributions/npm-cli
 npm install -g .
-kortolabs-proxy   # forwards to the native binary for this platform
+kotro-proxy   # forwards to the native binary for this platform
 ```
 
 ## Homebrew tap
 
-Copy `homebrew/Formula/kortolabs-proxy.rb` into a `homebrew-tap` repository, replace `sha256` placeholders after publishing GitHub release tarballs, then:
+Copy `homebrew/Formula/kotro-proxy.rb` into a `homebrew-tap` repository, replace `sha256` placeholders after publishing GitHub release tarballs, then:
 
 ```bash
-brew install kortolabs/tap/kortolabs-proxy
+brew install kotrolabs/tap/kotro-proxy
 ```
 
 After a GitHub release completes, stamp checksums automatically (updates both in-repo and tap scaffold formulas):

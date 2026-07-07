@@ -12,8 +12,8 @@ if ! command -v k6 >/dev/null 2>&1; then
 fi
 
 make build
-pkill -f 'bin/mock-upstream|bin/kortolabs-proxy' 2>/dev/null || true
-rm -f kortolabs-cache.db
+pkill -f 'bin/mock-upstream|bin/kotro-proxy' 2>/dev/null || true
+rm -f kotro-cache.db
 
 cleanup() {
   kill "$MOCK_PID" "$PROXY_PID" 2>/dev/null || true
@@ -24,7 +24,7 @@ bin/mock-upstream &
 MOCK_PID=$!
 sleep 0.5
 
-KORTO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kortolabs-proxy &
+KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kotro-proxy &
 PROXY_PID=$!
 sleep 0.5
 

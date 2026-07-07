@@ -1,13 +1,13 @@
 [package]
-name = "korto-proxy"
-description = "High-performance Rust port of the Korto local LLM proxy engine"
+name = "kotro-proxy"
+description = "High-performance Rust port of the Kotro local LLM proxy engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [[bin]]
-name = "korto-proxy"
+name = "kotro-proxy"
 path = "src/main.rs"
 
 [dependencies]

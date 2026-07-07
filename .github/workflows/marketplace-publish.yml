@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   marketplace:
-    name: Publish kortolabs-proxy-engine
+    name: Publish kotro-proxy-engine
     runs-on: ubuntu-latest
     steps:
       - name: Resolve release tag
@@ -52,7 +52,7 @@ jobs:
           mkdir -p release-assets
           gh release download "${{ steps.tag.outputs.tag }}" \
             --repo "${{ github.repository }}" \
-            --pattern 'kortolabs-proxy-engine.vsix' \
+            --pattern 'kotro-proxy-engine.vsix' \
             --dir release-assets
           ls -la release-assets/
 
@@ -72,6 +72,6 @@ jobs:
             exit 1
           fi
           npx @vscode/vsce@latest publish \
-            --packagePath release-assets/kortolabs-proxy-engine.vsix \
+            --packagePath release-assets/kotro-proxy-engine.vsix \
             --no-dependencies \
             -p "$VSCE_PAT"

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
 )
 
 func TestRegistryHandlerExposesCoreMetrics(t *testing.T) {
@@ -28,12 +28,12 @@ func TestRegistryHandlerExposesCoreMetrics(t *testing.T) {
 	}
 	body := rr.Body.String()
 	for _, want := range []string{
-		"korto_requests_total",
-		"korto_cache_hits_total",
-		"korto_compressor_blocks_stripped_total",
-		"korto_redactions_total",
-		"korto_scope_mode_total",
-		"korto_cache_key_strategy",
+		"kotro_requests_total",
+		"kotro_cache_hits_total",
+		"kotro_compressor_blocks_stripped_total",
+		"kotro_redactions_total",
+		"kotro_scope_mode_total",
+		"kotro_cache_key_strategy",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected metric %q in exposition:\n%s", want, body)

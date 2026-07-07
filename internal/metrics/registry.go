@@ -59,98 +59,98 @@ func NewRegistry() *Registry {
 	r := &Registry{
 		prom: prom,
 		requestsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_requests_total",
+			Name: "kotro_requests_total",
 			Help: "Total intercepted proxy requests.",
 		}, []string{"provider", "route", "stream"}),
 		requestDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "korto_request_duration_seconds",
+			Name:    "kotro_request_duration_seconds",
 			Help:    "End-to-end handler latency in seconds.",
 			Buckets: durationBuckets,
 		}, []string{"provider", "cache_status"}),
 		upstreamDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "korto_upstream_duration_seconds",
+			Name:    "kotro_upstream_duration_seconds",
 			Help:    "Upstream round-trip latency on cache miss paths.",
 			Buckets: durationBuckets,
 		}, []string{"provider", "status_class"}),
 		requestBodyBytes: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "korto_request_body_bytes",
+			Name:    "kotro_request_body_bytes",
 			Help:    "Incoming JSON request body size in bytes.",
 			Buckets: bodyBuckets,
 		}, []string{"provider"}),
 		errorsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_errors_total",
+			Name: "kotro_errors_total",
 			Help: "Proxy errors grouped by class.",
 		}, []string{"provider", "error_class"}),
 		cacheHitsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_cache_hits_total",
+			Name: "kotro_cache_hits_total",
 			Help: "Semantic cache hits.",
 		}, []string{"provider"}),
 		cacheMissesTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_cache_misses_total",
+			Name: "kotro_cache_misses_total",
 			Help: "Semantic cache misses.",
 		}, []string{"provider"}),
 		cacheStoresTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_cache_stores_total",
+			Name: "kotro_cache_stores_total",
 			Help: "New cache entries written after complete streams.",
 		}, []string{"provider"}),
 		cacheReplayBytesTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_cache_replay_bytes_total",
+			Name: "kotro_cache_replay_bytes_total",
 			Help: "Bytes served from cache on hit replays.",
 		}, []string{"provider"}),
 		cacheEntries: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "korto_cache_entries",
+			Name: "kotro_cache_entries",
 			Help: "Approximate number of live cache entries.",
 		}),
 		cacheEvictionsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_cache_evictions_total",
+			Name: "kotro_cache_evictions_total",
 			Help: "Cache entry evictions.",
 		}, []string{"reason"}),
 		compressorBlocks: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "korto_compressor_blocks_stripped_total",
+			Name: "kotro_compressor_blocks_stripped_total",
 			Help: "Context blocks removed as duplicates.",
 		}),
 		compressorBytesSaved: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "korto_compressor_bytes_saved_total",
+			Name: "kotro_compressor_bytes_saved_total",
 			Help: "Estimated bytes not sent upstream after compression.",
 		}),
 		compressorScopes: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "korto_compressor_scopes_active",
+			Name: "kotro_compressor_scopes_active",
 			Help: "Active compressor scope entries.",
 		}),
 		compressorEvictions: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_compressor_scope_evictions_total",
+			Name: "kotro_compressor_scope_evictions_total",
 			Help: "Compressor scope evictions.",
 		}, []string{"reason"}),
 		redactionsTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_redactions_total",
+			Name: "kotro_redactions_total",
 			Help: "Secrets redacted before upstream.",
 		}, []string{"pattern"}),
 		redactionRestores: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "korto_redaction_restores_total",
+			Name: "kotro_redaction_restores_total",
 			Help: "Placeholder restores in streaming responses.",
 		}),
 		scopeModeTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_scope_mode_total",
+			Name: "kotro_scope_mode_total",
 			Help: "Request scope resolution mode.",
 		}, []string{"mode"}),
 		trustedPeerRejections: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "korto_trusted_peer_rejections_total",
+			Name: "kotro_trusted_peer_rejections_total",
 			Help: "Gateway scope headers ignored from untrusted peers.",
 		}),
 		cacheKeyStrategy: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "korto_cache_key_strategy",
+			Name: "kotro_cache_key_strategy",
 			Help: "Active cache key strategy configuration (value is always 1).",
 		}, []string{"strategy", "window_size"}),
 		failoverAttempts: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "korto_failover_attempts_total",
+			Name: "kotro_failover_attempts_total",
 			Help: "Upstream failover attempts after primary errors or retryable status codes.",
 		}, []string{"result"}),
 		goroutines: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "korto_goroutines",
+			Name: "kotro_goroutines",
 			Help: "Current goroutine count.",
 		}),
 		residentMemoryBytes: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "korto_process_resident_memory_bytes",
+			Name: "kotro_process_resident_memory_bytes",
 			Help: "Process resident memory size in bytes.",
 		}),
 		stopCh: make(chan struct{}),

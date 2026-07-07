@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/server"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/server"
 )
 
 func TestMetricsEndpointEnabledByDefault(t *testing.T) {
@@ -38,7 +38,7 @@ func TestMetricsEndpointEnabledByDefault(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("metrics status %d", rr.Code)
 	}
-	if !strings.Contains(rr.Body.String(), "korto_cache_entries") {
+	if !strings.Contains(rr.Body.String(), "kotro_cache_entries") {
 		t.Fatalf("expected prometheus exposition, got: %s", rr.Body.String())
 	}
 }

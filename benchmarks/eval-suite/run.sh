@@ -11,7 +11,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 SUITE_DIR="${ROOT}/benchmarks/eval-suite"
 RUN_DIR="${SUITE_DIR}/.runs"
 LAST_JSON="${SUITE_DIR}/.last-run.json"
-PROXY_URL="${KORTO_PROXY_URL:-http://127.0.0.1:8080}"
+PROXY_URL="${KOTRO_PROXY_URL:-http://127.0.0.1:8080}"
 UPDATE_RESULTS="${UPDATE_RESULTS:-1}"
 
 mkdir -p "$RUN_DIR"
@@ -44,8 +44,8 @@ go run "${SUITE_DIR}/measure.go" >"$COMPRESSION_JSON"
 
 echo "→ building proxy stack"
 make build >/dev/null
-pkill -f 'bin/mock-upstream|bin/kortolabs-proxy' 2>/dev/null || true
-rm -f kortolabs-cache.db
+pkill -f 'bin/mock-upstream|bin/kotro-proxy' 2>/dev/null || true
+rm -f kotro-cache.db
 
 cleanup() {
   kill "$MOCK_PID" "$PROXY_PID" 2>/dev/null || true
@@ -56,9 +56,9 @@ bin/mock-upstream >/dev/null 2>&1 &
 MOCK_PID=$!
 sleep 0.5
 
-KORTO_UPSTREAM_URL=http://127.0.0.1:9000 \
-KORTO_ENABLE_PPROF=true \
-bin/kortolabs-proxy >/dev/null 2>&1 &
+KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 \
+KOTRO_ENABLE_PPROF=true \
+bin/kotro-proxy >/dev/null 2>&1 &
 PROXY_PID=$!
 
 for _ in $(seq 1 30); do
@@ -102,7 +102,7 @@ cache_header() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $1" \
     -d "$ISO_PAYLOAD"
-  awk 'BEGIN{IGNORECASE=1} tolower($0) ~ /^x-korto.*cache:/ {gsub(/\r/,"",$2); print $2; exit}' "$hdr"
+  awk 'BEGIN{IGNORECASE=1} tolower($0) ~ /^x-kotro.*cache:/ {gsub(/\r/,"",$2); print $2; exit}' "$hdr"
   rm -f "$hdr"
 }
 cache_header "tenant-alpha-token" >/dev/null
@@ -116,7 +116,7 @@ fi
 echo "→ W6 cancel storm (restart stack with audit-tuned mock)"
 kill "$MOCK_PID" "$PROXY_PID" 2>/dev/null || true
 sleep 0.5
-rm -f kortolabs-cache.db
+rm -f kotro-cache.db
 
 MOCK_CHUNK_DELAY_MS="${MOCK_CHUNK_DELAY_MS:-80}" \
 MOCK_MIN_CHUNKS="${MOCK_MIN_CHUNKS:-48}" \
@@ -124,9 +124,9 @@ bin/mock-upstream >/dev/null 2>&1 &
 MOCK_PID=$!
 sleep 0.5
 
-KORTO_UPSTREAM_URL=http://127.0.0.1:9000 \
-KORTO_ENABLE_PPROF=true \
-bin/kortolabs-proxy >>"${ROOT}/benchmarks/.audit-logs/go-proxy.log" 2>&1 &
+KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 \
+KOTRO_ENABLE_PPROF=true \
+bin/kotro-proxy >>"${ROOT}/benchmarks/.audit-logs/go-proxy.log" 2>&1 &
 PROXY_PID=$!
 sleep 0.5
 

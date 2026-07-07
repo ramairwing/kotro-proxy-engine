@@ -18,7 +18,7 @@ impl FromStr for CacheKeyStrategy {
     }
 }
 
-/// Parses `KORTO_CACHE_KEY_STRATEGY`, falling back to `window_n` and logging on unknown values.
+/// Parses `KOTRO_CACHE_KEY_STRATEGY`, falling back to `window_n` and logging on unknown values.
 pub fn parse_cache_key_strategy(raw: &str) -> CacheKeyStrategy {
     match raw.to_lowercase().trim() {
         "latest_only" => CacheKeyStrategy::LatestOnly,
@@ -27,7 +27,7 @@ pub fn parse_cache_key_strategy(raw: &str) -> CacheKeyStrategy {
         other => {
             tracing::warn!(
                 value = other,
-                "unknown KORTO_CACHE_KEY_STRATEGY; falling back to window_n"
+                "unknown KOTRO_CACHE_KEY_STRATEGY; falling back to window_n"
             );
             CacheKeyStrategy::WindowN
         }

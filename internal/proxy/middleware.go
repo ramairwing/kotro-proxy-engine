@@ -3,12 +3,12 @@ package proxy
 import (
 	"log/slog"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/compressor"
-	"github.com/kortolabs/proxy-engine/internal/config"
-	"github.com/kortolabs/proxy-engine/internal/guardrail"
-	"github.com/kortolabs/proxy-engine/internal/metrics"
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/compressor"
+	"github.com/kotro-labs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/guardrail"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 	"time"
 )
 
@@ -37,7 +37,7 @@ func OptionsFromConfig(cfg config.Config, logger *slog.Logger, m *metrics.Regist
 			logger = slog.Default()
 		}
 		logger.Error(
-			"invalid KORTO_TRUSTED_PROXY_CIDRS; failing safe with empty trusted-proxy whitelist",
+			"invalid KOTRO_TRUSTED_PROXY_CIDRS; failing safe with empty trusted-proxy whitelist",
 			"err", err,
 			"value", cfg.TrustedProxyCIDRs,
 		)

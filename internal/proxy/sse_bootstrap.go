@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-const sseBootstrapComment = ": kortolabs bootstrap stream\n\n"
+const sseBootstrapComment = ": kotrolabs bootstrap stream\n\n"
 
 // sseBootstrapWriter primes the client connection before upstream bytes arrive.
 // It is safe to pass to httputil.ReverseProxy after prime(); duplicate WriteHeader

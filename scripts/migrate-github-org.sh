@@ -15,7 +15,7 @@ echo ""
 if [[ "${ORG_NAME}" == "kotro" ]]; then
   if curl -fsS "https://api.github.com/users/kotro" | grep -q '"type": "User"'; then
     echo "ERROR: github.com/kotro is a personal account (since 2015), not an organization."
-    echo "       GitHub does not allow an org with the same login. Use ORG_NAME=kortosystems instead."
+    echo "       GitHub does not allow an org with the same login. Use ORG_NAME=kotrolabs instead."
     exit 1
   fi
 fi

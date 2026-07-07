@@ -6,8 +6,8 @@
 #   scripts/update-homebrew-shas.sh v0.1.0 --dry-run
 #
 # Updates:
-#   distributions/homebrew/Formula/kortolabs-proxy.rb
-#   distributions/homebrew-tap/Formula/kortolabs-proxy.rb
+#   distributions/homebrew/Formula/kotro-proxy.rb
+#   distributions/homebrew-tap/Formula/kotro-proxy.rb
 #
 # Requires: curl. Uses gh CLI when available (recommended for private repos).
 set -euo pipefail
@@ -15,8 +15,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="${GITHUB_REPO:-kotro-labs/kotro-proxy-engine}"
 FORMULAS=(
-  "${ROOT}/distributions/homebrew/Formula/kortolabs-proxy.rb"
-  "${ROOT}/distributions/homebrew-tap/Formula/kortolabs-proxy.rb"
+  "${ROOT}/distributions/homebrew/Formula/kotro-proxy.rb"
+  "${ROOT}/distributions/homebrew-tap/Formula/kotro-proxy.rb"
 )
 
 DRY_RUN=0
@@ -67,8 +67,8 @@ sha256_file() {
   fi
 }
 
-ARM_ASSET="korto-proxy-aarch64-apple-darwin.tar.gz"
-INTEL_ASSET="korto-proxy-x86_64-apple-darwin.tar.gz"
+ARM_ASSET="kotro-proxy-aarch64-apple-darwin.tar.gz"
+INTEL_ASSET="kotro-proxy-x86_64-apple-darwin.tar.gz"
 
 download_asset() {
   local asset="$1"
@@ -145,10 +145,10 @@ done
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo ""
   echo "Dry run complete (changes reverted)."
-  git -C "$ROOT" checkout -- distributions/homebrew/Formula/kortolabs-proxy.rb distributions/homebrew-tap/Formula/kortolabs-proxy.rb
+  git -C "$ROOT" checkout -- distributions/homebrew/Formula/kotro-proxy.rb distributions/homebrew-tap/Formula/kotro-proxy.rb
   exit 0
 fi
 
 echo ""
 echo "Updated Homebrew formulas. Sync homebrew-tap repo:"
-echo "  cp distributions/homebrew-tap/Formula/kortolabs-proxy.rb ../homebrew-tap/Formula/"
+echo "  cp distributions/homebrew-tap/Formula/kotro-proxy.rb ../homebrew-tap/Formula/"

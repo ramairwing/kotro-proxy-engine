@@ -53,7 +53,7 @@ Client (IDE / SDK / agent)  →  Kotro (:8080)  →  Upstream (OpenAI / Anthropi
 
 **Mitigations:**
 
-- Bind to loopback in dev: `KORTO_LISTEN_ADDR=127.0.0.1:8080`
+- Bind to loopback in dev: `KOTRO_LISTEN_ADDR=127.0.0.1:8080`
 - Use host firewall / network policy in shared environments
 - Do not expose an unauthenticated proxy to the public internet
 
@@ -68,13 +68,13 @@ Client (IDE / SDK / agent)  →  Kotro (:8080)  →  Upstream (OpenAI / Anthropi
 
 **Mitigations:**
 
-- Enable redaction by default (`KORTO_ENABLE_REDACTION=true`)
+- Enable redaction by default (`KOTRO_ENABLE_REDACTION=true`)
 - Review `internal/guardrail/redactor.go` patterns for your org's secret formats
 - Restrict passthrough surface if not required
 
 ### 3.3 Boundary C — Multi-tenant gateway (optional)
 
-When `KORTO_TRUST_UPSTREAM_GATEWAY=true`, Kotro accepts `X-Tenant-ID` and `X-Session-ID` **only** from peers whose **socket address** falls in `KORTO_TRUSTED_PROXY_CIDRS`.
+When `KOTRO_TRUST_UPSTREAM_GATEWAY=true`, Kotro accepts `X-Tenant-ID` and `X-Session-ID` **only** from peers whose **socket address** falls in `KOTRO_TRUSTED_PROXY_CIDRS`.
 
 ```
                     ┌─────────────────────┐
@@ -86,17 +86,17 @@ When `KORTO_TRUST_UPSTREAM_GATEWAY=true`, Kotro accepts `X-Tenant-ID` and `X-Ses
 
 **Critical invariant (shipped):** `isTrustedPeer()` inspects `r.RemoteAddr` only. HTTP forwarding headers such as `X-Forwarded-For` are **never** used for trust decisions. An untrusted client cannot spoof tenant scope by setting forwarding headers.
 
-**Fail-safe behavior:** If `KORTO_TRUSTED_PROXY_CIDRS` is malformed, Kotro logs an error and treats the CIDR list as **empty** (no peers trusted).
+**Fail-safe behavior:** If `KOTRO_TRUSTED_PROXY_CIDRS` is malformed, Kotro logs an error and treats the CIDR list as **empty** (no peers trusted).
 
 ---
 
 ## 4. Tenant & session isolation
 
-Implementation: `internal/proxy/scope.go` (Go), `rust/korto-proxy/src/router/scope.rs` (Rust).
+Implementation: `internal/proxy/scope.go` (Go), `rust/kotro-proxy/src/router/scope.rs` (Rust).
 
 ### 4.1 Default mode — credential-derived scope
 
-When `KORTO_TRUST_UPSTREAM_GATEWAY=false` (default):
+When `KOTRO_TRUST_UPSTREAM_GATEWAY=false` (default):
 
 1. Extract credential from `Authorization: Bearer <token>` or `x-api-key`
 2. If present: `SHA-256(credential)` → first 8 bytes as hex → scope ID `cred:<hash>`
@@ -111,7 +111,7 @@ When `KORTO_TRUST_UPSTREAM_GATEWAY=false` (default):
 
 ### 4.2 Gateway mode — header-assigned scope
 
-When `KORTO_TRUST_UPSTREAM_GATEWAY=true` **and** the immediate TCP peer is in `KORTO_TRUSTED_PROXY_CIDRS`:
+When `KOTRO_TRUST_UPSTREAM_GATEWAY=true` **and** the immediate TCP peer is in `KOTRO_TRUSTED_PROXY_CIDRS`:
 
 | Header | Required | Purpose |
 |--------|----------|---------|
@@ -134,8 +134,8 @@ When `KORTO_TRUST_UPSTREAM_GATEWAY=true` **and** the immediate TCP peer is in `K
 
 | Store | Location | Contents | Isolation |
 |-------|----------|----------|-----------|
-| **Cache DB** | `KORTO_CACHE_DB` (default `./kortolabs-cache.db`, bbolt) | Full captured SSE streams | Keys include scope; entries expire per `KORTO_CACHE_TTL` |
-| **Compressor state** | In-process LRU | Prior-turn content block hashes | Bounded by `KORTO_COMPRESSOR_MAX_SCOPES`, evicted after `KORTO_COMPRESSOR_SCOPE_TTL` |
+| **Cache DB** | `KOTRO_CACHE_DB` (default `./kotro-cache.db`, bbolt) | Full captured SSE streams | Keys include scope; entries expire per `KOTRO_CACHE_TTL` |
+| **Compressor state** | In-process LRU | Prior-turn content block hashes | Bounded by `KOTRO_COMPRESSOR_MAX_SCOPES`, evicted after `KOTRO_COMPRESSOR_SCOPE_TTL` |
 | **Redaction map** | Per-request heap | Placeholder ↔ original secret mappings | Discarded after request completes |
 
 **Implication for enterprise:** On shared hosts, treat the cache DB as **sensitive** — it contains full model responses. Use filesystem permissions, encrypted volumes, or per-tenant cache paths for multi-tenant hosts.
@@ -146,14 +146,14 @@ When `KORTO_TRUST_UPSTREAM_GATEWAY=true` **and** the immediate TCP peer is in `K
 
 | Control | Default | Env var |
 |---------|---------|---------|
-| Max request body | 10 MiB | `KORTO_MAX_REQUEST_BODY_BYTES` |
-| Compressor scope cap | 10,000 entries | `KORTO_COMPRESSOR_MAX_SCOPES` |
-| Compressor idle TTL | 1 hour | `KORTO_COMPRESSOR_SCOPE_TTL` |
-| Cache entry TTL | 24 hours | `KORTO_CACHE_TTL` |
-| HTTP read timeout | 30s | `KORTO_READ_TIMEOUT` |
-| HTTP idle timeout | 120s | `KORTO_IDLE_TIMEOUT` |
+| Max request body | 10 MiB | `KOTRO_MAX_REQUEST_BODY_BYTES` |
+| Compressor scope cap | 10,000 entries | `KOTRO_COMPRESSOR_MAX_SCOPES` |
+| Compressor idle TTL | 1 hour | `KOTRO_COMPRESSOR_SCOPE_TTL` |
+| Cache entry TTL | 24 hours | `KOTRO_CACHE_TTL` |
+| HTTP read timeout | 30s | `KOTRO_READ_TIMEOUT` |
+| HTTP idle timeout | 120s | `KOTRO_IDLE_TIMEOUT` |
 
-**Profiling endpoint:** `/debug/pprof` is **disabled** by default (`KORTO_ENABLE_PPROF=false`). Enable only on trusted networks for leak audits.
+**Profiling endpoint:** `/debug/pprof` is **disabled** by default (`KOTRO_ENABLE_PPROF=false`). Enable only on trusted networks for leak audits.
 
 ---
 
@@ -174,17 +174,17 @@ When `KORTO_TRUST_UPSTREAM_GATEWAY=true` **and** the immediate TCP peer is in `K
 
 ```bash
 # Safe local sidecar defaults
-KORTO_LISTEN_ADDR=127.0.0.1:8080
-KORTO_TRUST_UPSTREAM_GATEWAY=false
-KORTO_ENABLE_REDACTION=true
-KORTO_MAX_REQUEST_BODY_BYTES=10485760
-KORTO_COMPRESSOR_MAX_SCOPES=10000
-KORTO_COMPRESSOR_SCOPE_TTL=1h
-KORTO_ENABLE_PPROF=false
+KOTRO_LISTEN_ADDR=127.0.0.1:8080
+KOTRO_TRUST_UPSTREAM_GATEWAY=false
+KOTRO_ENABLE_REDACTION=true
+KOTRO_MAX_REQUEST_BODY_BYTES=10485760
+KOTRO_COMPRESSOR_MAX_SCOPES=10000
+KOTRO_COMPRESSOR_SCOPE_TTL=1h
+KOTRO_ENABLE_PPROF=false
 
 # Enterprise gateway mode (only when behind a trusted ingress)
-KORTO_TRUST_UPSTREAM_GATEWAY=true
-KORTO_TRUSTED_PROXY_CIDRS=10.0.0.0/8,172.16.0.0/12
+KOTRO_TRUST_UPSTREAM_GATEWAY=true
+KOTRO_TRUSTED_PROXY_CIDRS=10.0.0.0/8,172.16.0.0/12
 ```
 
 ---
@@ -209,11 +209,11 @@ These are candidates for the enterprise track; see [../roadmap/90-DAY-ROADMAP.md
 Use this for internal design-partner or enterprise approval:
 
 - [ ] Proxy bound to loopback or private network only
-- [ ] `KORTO_TRUST_UPSTREAM_GATEWAY` set intentionally (not accidentally `true`)
-- [ ] If gateway mode: `KORTO_TRUSTED_PROXY_CIDRS` matches **immediate** peer IPs, not client IPs
+- [ ] `KOTRO_TRUST_UPSTREAM_GATEWAY` set intentionally (not accidentally `true`)
+- [ ] If gateway mode: `KOTRO_TRUSTED_PROXY_CIDRS` matches **immediate** peer IPs, not client IPs
 - [ ] Cache DB path has appropriate filesystem permissions
 - [ ] Redaction patterns reviewed for org-specific secret formats
-- [ ] `KORTO_ENABLE_PPROF=false` in production
+- [ ] `KOTRO_ENABLE_PPROF=false` in production
 - [ ] Upstream URL points to intended provider (no open redirect)
 - [ ] Passthrough `/v1/*` routes evaluated for necessity
 

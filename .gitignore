@@ -22,7 +22,7 @@ coverage.html
 /rust/target/
 
 # Local runtime artifacts
-kortolabs-cache.db
+kotro-cache.db
 *.db
 benchmarks/.audit-logs/
 benchmarks/eval-suite/.runs/

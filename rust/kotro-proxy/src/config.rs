@@ -37,7 +37,7 @@ impl Default for Config {
             upstream_url: "http://127.0.0.1:9000".into(),
             fallback_url: None,
             fallback_model: None,
-            cache_db_path: "./kortolabs-cache.db".into(),
+            cache_db_path: "./kotro-cache.db".into(),
             cache_ttl: Duration::from_secs(24 * 3600),
             eviction_interval: Duration::from_secs(10 * 60),
             cache_hit_delay: Duration::from_millis(2),
@@ -64,12 +64,12 @@ impl Config {
     pub fn load() -> Self {
         let defaults = Self::default();
 
-        let profile = env_or("KORTO_PROFILE", String::new());
+        let profile = env_or("KOTRO_PROFILE", String::new());
         let mut strategy = crate::cache::parse_cache_key_strategy(
-            &env_or("KORTO_CACHE_KEY_STRATEGY", String::new()),
+            &env_or("KOTRO_CACHE_KEY_STRATEGY", String::new()),
         );
-        let enable_redaction = env_bool("KORTO_ENABLE_REDACTION", defaults.enable_redaction);
-        let mut enable_compression = env_bool("KORTO_ENABLE_COMPRESSION", defaults.enable_compression);
+        let enable_redaction = env_bool("KOTRO_ENABLE_REDACTION", defaults.enable_redaction);
+        let mut enable_compression = env_bool("KOTRO_ENABLE_COMPRESSION", defaults.enable_compression);
 
         match profile.as_str() {
             "cursor" => {
@@ -88,13 +88,13 @@ impl Config {
             );
         }
 
-        let mut fallback_url = env_opt("KORTO_FALLBACK_URL");
+        let mut fallback_url = env_opt("KOTRO_FALLBACK_URL");
         if fallback_url.is_some() {
             if let Some(ref raw) = fallback_url {
                 if reqwest::Url::parse(raw).is_err() {
                     tracing::warn!(
                         value = %raw,
-                        "invalid KORTO_FALLBACK_URL; failover disabled"
+                        "invalid KOTRO_FALLBACK_URL; failover disabled"
                     );
                     fallback_url = None;
                 }
@@ -102,41 +102,41 @@ impl Config {
         }
 
         Self {
-            listen_addr: env_or("KORTO_LISTEN_ADDR", defaults.listen_addr),
-            upstream_url: env_or("KORTO_UPSTREAM_URL", defaults.upstream_url),
+            listen_addr: env_or("KOTRO_LISTEN_ADDR", defaults.listen_addr),
+            upstream_url: env_or("KOTRO_UPSTREAM_URL", defaults.upstream_url),
             fallback_url,
-            fallback_model: env_opt("KORTO_FALLBACK_MODEL"),
-            cache_db_path: env_or("KORTO_CACHE_DB", defaults.cache_db_path),
-            cache_ttl: env_flexible_duration("KORTO_CACHE_TTL", defaults.cache_ttl),
+            fallback_model: env_opt("KOTRO_FALLBACK_MODEL"),
+            cache_db_path: env_or("KOTRO_CACHE_DB", defaults.cache_db_path),
+            cache_ttl: env_flexible_duration("KOTRO_CACHE_TTL", defaults.cache_ttl),
             eviction_interval: env_flexible_duration(
-                "KORTO_EVICTION_INTERVAL",
+                "KOTRO_EVICTION_INTERVAL",
                 defaults.eviction_interval,
             ),
             cache_hit_delay: env_flexible_duration(
-                "KORTO_CACHE_HIT_DELAY_MS",
+                "KOTRO_CACHE_HIT_DELAY_MS",
                 defaults.cache_hit_delay,
             ),
-            enable_cache: env_bool("KORTO_ENABLE_CACHE", defaults.enable_cache),
+            enable_cache: env_bool("KOTRO_ENABLE_CACHE", defaults.enable_cache),
             enable_redaction,
             enable_compression,
-            enable_shrink: env_bool("KORTO_ENABLE_SHRINK", defaults.enable_shrink),
-            enable_pprof: env_bool("KORTO_ENABLE_PPROF", defaults.enable_pprof),
+            enable_shrink: env_bool("KOTRO_ENABLE_SHRINK", defaults.enable_shrink),
+            enable_pprof: env_bool("KOTRO_ENABLE_PPROF", defaults.enable_pprof),
             trust_upstream_gateway: env_bool(
-                "KORTO_TRUST_UPSTREAM_GATEWAY",
+                "KOTRO_TRUST_UPSTREAM_GATEWAY",
                 defaults.trust_upstream_gateway,
             ),
-            trusted_proxy_cidrs: env_or("KORTO_TRUSTED_PROXY_CIDRS", defaults.trusted_proxy_cidrs),
-            compressor_max_scopes: env_u64("KORTO_COMPRESSOR_MAX_SCOPES", defaults.compressor_max_scopes),
+            trusted_proxy_cidrs: env_or("KOTRO_TRUSTED_PROXY_CIDRS", defaults.trusted_proxy_cidrs),
+            compressor_max_scopes: env_u64("KOTRO_COMPRESSOR_MAX_SCOPES", defaults.compressor_max_scopes),
             compressor_scope_ttl: env_flexible_duration(
-                "KORTO_COMPRESSOR_SCOPE_TTL",
+                "KOTRO_COMPRESSOR_SCOPE_TTL",
                 defaults.compressor_scope_ttl,
             ),
             cache_key_strategy: strategy,
-            cache_window_size: env_usize("KORTO_CACHE_WINDOW_SIZE", defaults.cache_window_size),
-            metrics_addr: env_or("KORTO_METRICS_ADDR", defaults.metrics_addr),
-            enable_metrics: env_bool("KORTO_ENABLE_METRICS", defaults.enable_metrics),
-            local_model_pattern: env_opt("KORTO_LOCAL_MODEL_PATTERN"),
-            local_upstream_url: env_opt("KORTO_LOCAL_UPSTREAM_URL"),
+            cache_window_size: env_usize("KOTRO_CACHE_WINDOW_SIZE", defaults.cache_window_size),
+            metrics_addr: env_or("KOTRO_METRICS_ADDR", defaults.metrics_addr),
+            enable_metrics: env_bool("KOTRO_ENABLE_METRICS", defaults.enable_metrics),
+            local_model_pattern: env_opt("KOTRO_LOCAL_MODEL_PATTERN"),
+            local_upstream_url: env_opt("KOTRO_LOCAL_UPSTREAM_URL"),
         }
     }
 }

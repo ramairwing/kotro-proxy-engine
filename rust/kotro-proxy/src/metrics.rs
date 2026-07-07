@@ -85,7 +85,7 @@ impl MetricsRegistry {
         let registry = Registry::new();
 
         let requests_total = register_counter_vec_with_registry!(
-            "korto_requests_total",
+            "kotro_requests_total",
             "Total intercepted proxy requests.",
             &["provider", "route", "stream"],
             registry
@@ -93,7 +93,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let request_duration = register_histogram_vec_with_registry!(
-            "korto_request_duration_seconds",
+            "kotro_request_duration_seconds",
             "End-to-end handler latency in seconds.",
             &["provider", "cache_status"],
             vec![0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
@@ -102,7 +102,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let upstream_duration = register_histogram_vec_with_registry!(
-            "korto_upstream_duration_seconds",
+            "kotro_upstream_duration_seconds",
             "Upstream round-trip latency on cache miss paths.",
             &["provider", "status_class"],
             vec![0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
@@ -111,7 +111,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let request_body_bytes = register_histogram_vec_with_registry!(
-            "korto_request_body_bytes",
+            "kotro_request_body_bytes",
             "Incoming JSON request body size in bytes.",
             &["provider"],
             vec![
@@ -122,7 +122,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let errors_total = register_counter_vec_with_registry!(
-            "korto_errors_total",
+            "kotro_errors_total",
             "Proxy errors grouped by class.",
             &["provider", "error_class"],
             registry
@@ -130,7 +130,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let cache_hits_total = register_counter_vec_with_registry!(
-            "korto_cache_hits_total",
+            "kotro_cache_hits_total",
             "Semantic cache hits.",
             &["provider"],
             registry
@@ -138,7 +138,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let cache_misses_total = register_counter_vec_with_registry!(
-            "korto_cache_misses_total",
+            "kotro_cache_misses_total",
             "Semantic cache misses.",
             &["provider"],
             registry
@@ -146,7 +146,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let cache_stores_total = register_counter_vec_with_registry!(
-            "korto_cache_stores_total",
+            "kotro_cache_stores_total",
             "New cache entries written after complete streams.",
             &["provider"],
             registry
@@ -154,7 +154,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let cache_replay_bytes_total = register_counter_vec_with_registry!(
-            "korto_cache_replay_bytes_total",
+            "kotro_cache_replay_bytes_total",
             "Bytes served from cache on hit replays.",
             &["provider"],
             registry
@@ -162,14 +162,14 @@ impl MetricsRegistry {
         .unwrap();
 
         let cache_entries = register_gauge_with_registry!(
-            "korto_cache_entries",
+            "kotro_cache_entries",
             "Approximate number of live cache entries.",
             registry
         )
         .unwrap();
 
         let cache_evictions_total = register_counter_vec_with_registry!(
-            "korto_cache_evictions_total",
+            "kotro_cache_evictions_total",
             "Cache entry evictions.",
             &["reason"],
             registry
@@ -177,28 +177,28 @@ impl MetricsRegistry {
         .unwrap();
 
         let compressor_blocks = register_counter_with_registry!(
-            "korto_compressor_blocks_stripped_total",
+            "kotro_compressor_blocks_stripped_total",
             "Context blocks removed as duplicates.",
             registry
         )
         .unwrap();
 
         let compressor_bytes_saved = register_counter_with_registry!(
-            "korto_compressor_bytes_saved_total",
+            "kotro_compressor_bytes_saved_total",
             "Estimated bytes not sent upstream after compression.",
             registry
         )
         .unwrap();
 
         let compressor_scopes = register_gauge_with_registry!(
-            "korto_compressor_scopes_active",
+            "kotro_compressor_scopes_active",
             "Active compressor scope entries.",
             registry
         )
         .unwrap();
 
         let compressor_evictions = register_counter_vec_with_registry!(
-            "korto_compressor_scope_evictions_total",
+            "kotro_compressor_scope_evictions_total",
             "Compressor scope evictions.",
             &["reason"],
             registry
@@ -206,7 +206,7 @@ impl MetricsRegistry {
         .unwrap();
 
         let redactions_total = register_counter_vec_with_registry!(
-            "korto_redactions_total",
+            "kotro_redactions_total",
             "Secrets redacted before upstream.",
             &["pattern"],
             registry
@@ -214,14 +214,14 @@ impl MetricsRegistry {
         .unwrap();
 
         let redaction_restores = register_counter_with_registry!(
-            "korto_redaction_restores_total",
+            "kotro_redaction_restores_total",
             "Placeholder restores in streaming responses.",
             registry
         )
         .unwrap();
 
         let scope_mode_total = register_counter_vec_with_registry!(
-            "korto_scope_mode_total",
+            "kotro_scope_mode_total",
             "Request scope resolution mode.",
             &["mode"],
             registry
@@ -229,14 +229,14 @@ impl MetricsRegistry {
         .unwrap();
 
         let trusted_peer_rejections = register_counter_with_registry!(
-            "korto_trusted_peer_rejections_total",
+            "kotro_trusted_peer_rejections_total",
             "Gateway scope headers ignored from untrusted peers.",
             registry
         )
         .unwrap();
 
         let cache_key_strategy = register_gauge_vec_with_registry!(
-            "korto_cache_key_strategy",
+            "kotro_cache_key_strategy",
             "Active cache key strategy configuration.",
             &["strategy", "window_size"],
             registry
@@ -244,14 +244,14 @@ impl MetricsRegistry {
         .unwrap();
 
         let process_threads = register_gauge_with_registry!(
-            "korto_process_threads",
+            "kotro_process_threads",
             "Current process thread count.",
             registry
         )
         .unwrap();
 
         let resident_memory_bytes = register_gauge_with_registry!(
-            "korto_process_resident_memory_bytes",
+            "kotro_process_resident_memory_bytes",
             "Process resident memory size in bytes.",
             registry
         )
@@ -455,8 +455,8 @@ impl MetricsRegistry {
 
         let totals = self.gather_totals();
 
-        let comp_bytes = *totals.get("korto_compressor_bytes_saved_total").unwrap_or(&0.0);
-        let cache_bytes = *totals.get("korto_cache_replay_bytes_total").unwrap_or(&0.0);
+        let comp_bytes = *totals.get("kotro_compressor_bytes_saved_total").unwrap_or(&0.0);
+        let cache_bytes = *totals.get("kotro_cache_replay_bytes_total").unwrap_or(&0.0);
         let tokens_saved = (comp_bytes + cache_bytes) / 4.0;
         let dollars_saved = tokens_saved * 0.000003;
 
@@ -468,24 +468,24 @@ impl MetricsRegistry {
             estimated_dollars_saved: dollars_saved,
             cache_replay_bytes_total: cache_bytes,
             compressor_bytes_saved_total: comp_bytes,
-            compressor_blocks_stripped_total: *totals.get("korto_compressor_blocks_stripped_total").unwrap_or(&0.0),
-            compressor_scopes_active: *totals.get("korto_compressor_scopes_active").unwrap_or(&0.0),
-            redactions_total: *totals.get("korto_redactions_total").unwrap_or(&0.0),
-            cache_entries: *totals.get("korto_cache_entries").unwrap_or(&0.0),
-            requests_total: *totals.get("korto_requests_total").unwrap_or(&0.0),
+            compressor_blocks_stripped_total: *totals.get("kotro_compressor_blocks_stripped_total").unwrap_or(&0.0),
+            compressor_scopes_active: *totals.get("kotro_compressor_scopes_active").unwrap_or(&0.0),
+            redactions_total: *totals.get("kotro_redactions_total").unwrap_or(&0.0),
+            cache_entries: *totals.get("kotro_cache_entries").unwrap_or(&0.0),
+            requests_total: *totals.get("kotro_requests_total").unwrap_or(&0.0),
             recent_requests: recent,
         }
     }
 
     fn gather_totals(&self) -> std::collections::HashMap<String, f64> {
         let mut out = std::collections::HashMap::new();
-        out.insert("korto_compressor_bytes_saved_total".to_string(), 0.0);
-        out.insert("korto_cache_replay_bytes_total".to_string(), 0.0);
-        out.insert("korto_compressor_blocks_stripped_total".to_string(), 0.0);
-        out.insert("korto_compressor_scopes_active".to_string(), 0.0);
-        out.insert("korto_redactions_total".to_string(), 0.0);
-        out.insert("korto_cache_entries".to_string(), 0.0);
-        out.insert("korto_requests_total".to_string(), 0.0);
+        out.insert("kotro_compressor_bytes_saved_total".to_string(), 0.0);
+        out.insert("kotro_cache_replay_bytes_total".to_string(), 0.0);
+        out.insert("kotro_compressor_blocks_stripped_total".to_string(), 0.0);
+        out.insert("kotro_compressor_scopes_active".to_string(), 0.0);
+        out.insert("kotro_redactions_total".to_string(), 0.0);
+        out.insert("kotro_cache_entries".to_string(), 0.0);
+        out.insert("kotro_requests_total".to_string(), 0.0);
 
         let mfs = self.registry.gather();
         for mf in mfs {

@@ -9,10 +9,10 @@ import { verifyCache } from './verify-cache';
 
 let sidecarProcess: ChildProcess | null = null;
 let statusBar: ProxyStatusBar | null = null;
-const output = vscode.window.createOutputChannel('KortoLabs Proxy Engine');
+const output = vscode.window.createOutputChannel('Kotro Proxy Engine');
 
 function extensionConfig() {
-  const cfg = vscode.workspace.getConfiguration('kortosystems');
+  const cfg = vscode.workspace.getConfiguration('kotrolabs');
   return {
     profile: cfg.get<string>('profile', 'custom'),
     listenAddr: cfg.get<string>('listenAddr', ':8080'),
@@ -37,20 +37,20 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(statusBar);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('kortosystems.openDashboard', () => {
+    vscode.commands.registerCommand('kotrolabs.openDashboard', () => {
       const url = statusBar?.getDashboardUrl() ?? 'http://127.0.0.1:9090/dashboard';
       void vscode.env.openExternal(vscode.Uri.parse(url));
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('kortosystems.showProxyOutput', () => {
+    vscode.commands.registerCommand('kotrolabs.showProxyOutput', () => {
       output.show(true);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('kortosystems.verifyCache', async () => {
+    vscode.commands.registerCommand('kotrolabs.verifyCache', async () => {
       output.show(true);
       output.appendLine('Running cache verification (2 identical streaming requests)...');
 
@@ -59,23 +59,23 @@ export function activate(context: vscode.ExtensionContext): void {
 
       if (result.ok) {
         const pick = await vscode.window.showInformationMessage(
-          `Korto cache verified: ${result.detail}`,
+          `Kotro cache verified: ${result.detail}`,
           'Open Dashboard',
         );
         if (pick === 'Open Dashboard') {
-          void vscode.commands.executeCommand('kortosystems.openDashboard');
+          void vscode.commands.executeCommand('kotrolabs.openDashboard');
         }
         statusBar?.markRunning();
         return;
       }
 
       const pick = await vscode.window.showWarningMessage(
-        `Korto cache verification failed. ${result.detail}`,
+        `Kotro cache verification failed. ${result.detail}`,
         'Open Dashboard',
         'Show Logs',
       );
       if (pick === 'Open Dashboard') {
-        void vscode.commands.executeCommand('kortosystems.openDashboard');
+        void vscode.commands.executeCommand('kotrolabs.openDashboard');
       } else if (pick === 'Show Logs') {
         output.show(true);
       }
@@ -83,9 +83,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('korto.connectCursor', async () => {
+    vscode.commands.registerCommand('kotro.connectCursor', async () => {
       const pick = await vscode.window.showInformationMessage(
-        'Cursor Auto mode completely bypasses local proxies. To use Korto caching, you must configure a custom Base URL. Would you like to configure Korto for Cursor Chat now?',
+        'Cursor Auto mode completely bypasses local proxies. To use Kotro caching, you must configure a custom Base URL. Would you like to configure Kotro for Cursor Chat now?',
         'Yes, configure BYOK',
         'Use Continue.dev instead',
         'Learn More'
@@ -97,10 +97,10 @@ export function activate(context: vscode.ExtensionContext): void {
           'Verify Cache'
         );
         if (pick2 === 'Verify Cache') {
-          void vscode.commands.executeCommand('kortosystems.verifyCache');
+          void vscode.commands.executeCommand('kotrolabs.verifyCache');
         }
       } else if (pick === 'Use Continue.dev instead') {
-        void vscode.commands.executeCommand('korto.setupContinue');
+        void vscode.commands.executeCommand('kotro.setupContinue');
       } else if (pick === 'Learn More') {
         void vscode.env.openExternal(vscode.Uri.parse('https://github.com/kotro-labs/kotro-proxy-engine/blob/main/distributions/vscode-extension/README.md#verify-it-works-2-minutes'));
       }
@@ -108,7 +108,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('korto.setupContinue', async () => {
+    vscode.commands.registerCommand('kotro.setupContinue', async () => {
       const homeDir = process.env.HOME || process.env.USERPROFILE;
       if (!homeDir) {
         void vscode.window.showErrorMessage('Could not determine home directory.');
@@ -128,14 +128,14 @@ export function activate(context: vscode.ExtensionContext): void {
           config.models = [];
         }
         
-        const existing = config.models.find((m: any) => m.title === 'Korto Local Proxy');
+        const existing = config.models.find((m: any) => m.title === 'Kotro Local Proxy');
         if (existing) {
-          void vscode.window.showInformationMessage('Korto is already configured in your Continue settings.');
+          void vscode.window.showInformationMessage('Kotro is already configured in your Continue settings.');
           return;
         }
         
         config.models.push({
-          title: "Korto Local Proxy",
+          title: "Kotro Local Proxy",
           provider: "openai",
           model: "gpt-4o",
           apiKey: "YOUR_API_KEY",
@@ -143,7 +143,7 @@ export function activate(context: vscode.ExtensionContext): void {
         });
         
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        void vscode.window.showInformationMessage('Success! Continue.dev is now configured to route through Korto.');
+        void vscode.window.showInformationMessage('Success! Continue.dev is now configured to route through Kotro.');
       } catch (err: any) {
         void vscode.window.showErrorMessage(`Failed to update Continue config: ${err.message}`);
       }
@@ -154,7 +154,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const binaryPath = path.join(context.extensionPath, 'bin', binaryName);
 
   if (!fs.existsSync(binaryPath)) {
-    const msg = `KortoLabs binary missing: ${binaryPath}`;
+    const msg = `Kotro Labs binary missing: ${binaryPath}`;
     output.appendLine(msg);
     void vscode.window.showErrorMessage(msg);
     return;
@@ -162,25 +162,25 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const cacheDb =
     settings.cacheDb ||
-    path.join(context.globalStorageUri.fsPath, 'kortolabs-cache.db');
+    path.join(context.globalStorageUri.fsPath, 'kotro-cache.db');
 
   fs.mkdirSync(path.dirname(cacheDb), { recursive: true });
 
   sidecarProcess = spawn(binaryPath, [], {
     env: {
       ...process.env,
-      KORTO_PROFILE: settings.profile === 'custom' ? '' : settings.profile,
-      KORTO_LISTEN_ADDR: settings.listenAddr,
-      KORTO_METRICS_ADDR: addrForEnv(settings.metricsAddr),
-      KORTO_UPSTREAM_URL: settings.upstreamUrl,
-      KORTO_CACHE_DB: cacheDb,
-      KORTO_ENABLE_CACHE: String(settings.enableCache),
-      KORTO_ENABLE_REDACTION: String(settings.enableRedaction),
-      KORTO_ENABLE_COMPRESSION: String(settings.enableCompression),
-      KORTO_ENABLE_SHRINK: String(settings.enableShrink),
-      KORTO_FALLBACK_URL: fbUrl,
-      KORTO_FALLBACK_MODEL: fbModel,
-      KORTO_ENABLE_METRICS: String(settings.enableMetrics),
+      KOTRO_PROFILE: settings.profile === 'custom' ? '' : settings.profile,
+      KOTRO_LISTEN_ADDR: settings.listenAddr,
+      KOTRO_METRICS_ADDR: addrForEnv(settings.metricsAddr),
+      KOTRO_UPSTREAM_URL: settings.upstreamUrl,
+      KOTRO_CACHE_DB: cacheDb,
+      KOTRO_ENABLE_CACHE: String(settings.enableCache),
+      KOTRO_ENABLE_REDACTION: String(settings.enableRedaction),
+      KOTRO_ENABLE_COMPRESSION: String(settings.enableCompression),
+      KOTRO_ENABLE_SHRINK: String(settings.enableShrink),
+      KOTRO_FALLBACK_URL: settings.fallbackUrl,
+      KOTRO_FALLBACK_MODEL: settings.fallbackModel,
+      KOTRO_ENABLE_METRICS: String(settings.enableMetrics),
       RUST_LOG: process.env.RUST_LOG ?? 'info',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -202,7 +202,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   sidecarProcess.on('error', (err) => {
     output.appendLine(`Failed to start sidecar: ${err.message}`);
-    void vscode.window.showErrorMessage(`KortoLabs proxy failed to start: ${err.message}`);
+    void vscode.window.showErrorMessage(`Kotro Labs proxy failed to start: ${err.message}`);
     statusBar?.markStopped();
   });
 
@@ -216,15 +216,15 @@ export function activate(context: vscode.ExtensionContext): void {
   const proxyBase = `${listenBaseUrl(settings.listenAddr)}/v1`;
   void vscode.window
     .showInformationMessage(
-      `Korto proxy is running. Route your IDE to ${proxyBase} — then run "Korto: Verify Cache" to confirm.`,
+      `Kotro proxy is running. Route your IDE to ${proxyBase} — then run "Kotro: Verify Cache" to confirm.`,
       'Verify Cache',
       'Open Dashboard',
     )
     .then((pick) => {
       if (pick === 'Verify Cache') {
-        void vscode.commands.executeCommand('kortosystems.verifyCache');
+        void vscode.commands.executeCommand('kotrolabs.verifyCache');
       } else if (pick === 'Open Dashboard') {
-        void vscode.commands.executeCommand('kortosystems.openDashboard');
+        void vscode.commands.executeCommand('kotrolabs.openDashboard');
       }
     });
 }

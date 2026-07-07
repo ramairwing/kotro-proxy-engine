@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kortolabs/proxy-engine/internal/cache"
-	"github.com/kortolabs/proxy-engine/internal/metrics"
-	"github.com/kortolabs/proxy-engine/internal/models"
-	"github.com/kortolabs/proxy-engine/internal/proxy"
+	"github.com/kotro-labs/proxy-engine/internal/cache"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/proxy"
 )
 
 func main() {
@@ -72,7 +72,7 @@ func mustFlexText(text string) models.FlexContent {
 
 func runScenario(apiKey, name string, strategy cache.CacheKeyStrategy, upstreamURL, model string, system models.ChatMessage, codeDump string, out io.Writer) {
 	// 1. Setup local proxy
-	storePath := os.TempDir() + "/korto-eval-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
+	storePath := os.TempDir() + "/kotro-eval-" + fmt.Sprintf("%d", time.Now().UnixNano()) + ".db"
 	store, _ := cache.Open(storePath)
 	defer os.Remove(storePath)
 	

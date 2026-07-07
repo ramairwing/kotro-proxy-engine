@@ -75,7 +75,7 @@ impl Server {
                 redaction = self.cfg.enable_redaction,
                 cache_ttl_secs = self.cfg.cache_ttl.as_secs(),
                 cache_eviction_secs = self.cfg.eviction_interval.as_secs(),
-                "kortolabs proxy listening"
+                "kotrolabs proxy listening"
             );
 
             let metrics_service = self.telemetry_router.unwrap().into_make_service_with_connect_info::<SocketAddr>();
@@ -104,7 +104,7 @@ impl Server {
                 redaction = self.cfg.enable_redaction,
                 cache_ttl_secs = self.cfg.cache_ttl.as_secs(),
                 cache_eviction_secs = self.cfg.eviction_interval.as_secs(),
-                "kortolabs proxy listening"
+                "kotrolabs proxy listening"
             );
 
             if let Err(err) = proxy_server.await {

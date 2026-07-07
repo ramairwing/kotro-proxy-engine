@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/sse"
+	"github.com/kotro-labs/proxy-engine/internal/sse"
 )
 
 func TestReaderPreservesFrames(t *testing.T) {

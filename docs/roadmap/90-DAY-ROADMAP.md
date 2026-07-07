@@ -60,7 +60,7 @@ Days 61–90  Adoption & GTM       Design partners · Show HN · Helm / ingress 
 | Week | Deliverable | Owner focus |
 |------|-------------|-------------|
 | **W5** | Implement `/metrics` per [OBSERVABILITY-SPEC.md](../operations/OBSERVABILITY-SPEC.md) (Phase 1 counters) | Core engineering |
-| **W5** | `korto_cache_hits_total`, `korto_requests_total`, `korto_redactions_total` | Minimum viable metrics |
+| **W5** | `kotro_cache_hits_total`, `kotro_requests_total`, `kotro_redactions_total` | Minimum viable metrics |
 | **W6** | Compressor + scope cardinality metrics; LRU eviction counters | Memory safety visibility |
 | **W6** | Local dashboard: Grafana JSON or minimal bundled UI at `/dashboard` | Developer wedge |
 | **W7** | VS Code extension: surface cache hit + estimated token savings in status bar | IDE integration |

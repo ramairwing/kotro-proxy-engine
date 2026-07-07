@@ -1,6 +1,6 @@
 import { listenBaseUrl } from './listen-url';
 
-const VERIFY_PROMPT = '[korto-verify] What is a semantic cache in one sentence?';
+const VERIFY_PROMPT = '[kotro-verify] What is a semantic cache in one sentence?';
 
 type CacheLabel = 'hit' | 'miss' | 'bypass' | 'error';
 
@@ -27,7 +27,7 @@ async function postOnce(url: string): Promise<CacheLabel> {
       throw new Error(`HTTP ${res.status}${body ? `: ${body.slice(0, 120)}` : ''}`);
     }
 
-    const cache = res.headers.get('x-kortolabs-cache')?.toLowerCase();
+    const cache = res.headers.get('x-kotro-cache')?.toLowerCase();
     await res.text();
 
     if (cache === 'hit') {
@@ -78,7 +78,7 @@ export async function verifyCache(listenAddr: string): Promise<VerifyResult> {
       second,
       ok: false,
       detail:
-        'Cache is bypassed (check kortosystems.enableCache and use stream:true). ' +
+        'Cache is bypassed (check kotrolabs.enableCache and use stream:true). ' +
         `Got ${first.toUpperCase()} then ${second.toUpperCase()}.`,
     };
   }

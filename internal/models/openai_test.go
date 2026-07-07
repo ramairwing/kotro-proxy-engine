@@ -3,7 +3,7 @@ package models_test
 import (
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/models"
+	"github.com/kotro-labs/proxy-engine/internal/models"
 )
 
 func TestFlexContentString(t *testing.T) {

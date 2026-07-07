@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/kortolabs/proxy-engine/internal/config"
+	"github.com/kotro-labs/proxy-engine/internal/config"
 )
 
 func TestOptionsFromConfig_LogsInvalidTrustedProxyCIDRs(t *testing.T) {
@@ -20,7 +20,7 @@ func TestOptionsFromConfig_LogsInvalidTrustedProxyCIDRs(t *testing.T) {
 	if len(opts.Scope.TrustedProxyCIDRs) != 0 {
 		t.Fatal("invalid CIDR config must fail safe to empty whitelist")
 	}
-	if !bytes.Contains(buf.Bytes(), []byte("invalid KORTO_TRUSTED_PROXY_CIDRS")) {
+	if !bytes.Contains(buf.Bytes(), []byte("invalid KOTRO_TRUSTED_PROXY_CIDRS")) {
 		t.Fatalf("expected config error log, got: %s", buf.String())
 	}
 }

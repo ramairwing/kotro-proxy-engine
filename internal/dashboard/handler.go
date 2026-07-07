@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/kortolabs/proxy-engine/internal/metrics"
+	"github.com/kotro-labs/proxy-engine/internal/metrics"
 )
 
 //go:embed page.html

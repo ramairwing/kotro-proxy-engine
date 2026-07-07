@@ -619,7 +619,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "korto-proxy"
+name = "kotro-proxy"
 version = "0.1.0"
 dependencies = [
  "async-stream",
