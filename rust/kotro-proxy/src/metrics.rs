@@ -80,6 +80,12 @@ pub struct MetricsRegistry {
     dashboard: Arc<Mutex<DashboardState>>,
 }
 
+impl Default for MetricsRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetricsRegistry {
     pub fn new() -> Self {
         let registry = Registry::new();

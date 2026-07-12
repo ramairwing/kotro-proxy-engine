@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! Background TTL sweeps — mirrors `internal/cache/eviction.go`.
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

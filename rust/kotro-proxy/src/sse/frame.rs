@@ -171,18 +171,16 @@ impl Reader {
     }
 
     /// Returns the next SSE frame. Yields `ReaderError::Eof` when the stream is exhausted.
-    pub fn next(&mut self) -> Result<Frame, ReaderError> {
-        loop {
-            match self.parser.next_frame() {
-                FrameParseResult::Complete(raw) => return Ok(parse_frame_bytes(raw)),
-                FrameParseResult::Incomplete if self.eof => {
-                    return match self.parser.drain_remaining() {
-                        Some(raw) => Ok(parse_frame_bytes(raw)),
-                        None => Err(ReaderError::Eof),
-                    };
+    pub fn next_frame(&mut self) -> Result<Frame, ReaderError> {
+        match self.parser.next_frame() {
+            FrameParseResult::Complete(raw) => Ok(parse_frame_bytes(raw)),
+            FrameParseResult::Incomplete if self.eof => {
+                match self.parser.drain_remaining() {
+                    Some(raw) => Ok(parse_frame_bytes(raw)),
+                    None => Err(ReaderError::Eof),
                 }
-                FrameParseResult::Incomplete => return Err(ReaderError::NeedMoreData),
             }
+            FrameParseResult::Incomplete => Err(ReaderError::NeedMoreData),
         }
     }
 }
@@ -257,7 +255,7 @@ mod tests {
                 reader.mark_eof();
             }
             loop {
-                match reader.next() {
+                match reader.next_frame() {
                     Ok(frame) => frames.push(frame),
                     Err(ReaderError::NeedMoreData) => break,
                     Err(ReaderError::Eof) => return frames,
@@ -337,12 +335,12 @@ mod tests {
         reader.feed(raw);
         reader.mark_eof();
 
-        let f1 = reader.next().expect("first frame");
+        let f1 = reader.next_frame().expect("first frame");
         assert!(f1.data_payload().is_some_and(|p| {
             p.windows(5).any(|w| w == br#""x":1"#)
         }));
 
-        let f2 = reader.next().expect("done frame");
+        let f2 = reader.next_frame().expect("done frame");
         assert!(f2.is_openai_done());
 
         let f3 = Frame {
@@ -353,7 +351,7 @@ mod tests {
         };
         assert!(f3.is_anthropic_complete());
 
-        assert_eq!(reader.next(), Err(ReaderError::Eof));
+        assert_eq!(reader.next_frame(), Err(ReaderError::Eof));
     }
 
     #[test]
@@ -389,7 +387,7 @@ mod tests {
         let mut reader = Reader::new();
         reader.feed(&serialized);
         reader.mark_eof();
-        let parsed = reader.next().expect("round trip");
+        let parsed = reader.next_frame().expect("round trip");
         assert_eq!(parsed.data_payload(), frame.data_payload());
     }
 

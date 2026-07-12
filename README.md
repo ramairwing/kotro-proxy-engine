@@ -39,35 +39,42 @@ In a standard 3-turn codebase benchmark:
 
 | Channel | Command |
 |---------|---------|
-| **Docker** | `docker-compose up` (mock upstream + Rust proxy) |
+| **1-Click Install (macOS/Linux)** | `curl -sL https://kotro.dev/install.sh \| bash` |
+| **Docker** | `docker run -p 3000:3000 kotrolabs/kotro-proxy` |
 | **npm** | `npm install -g @kotro-labs/proxy-engine` → `kotro-proxy` |
-| **Homebrew** | `brew tap kotro-labs/tap && brew trust kotro-labs/tap && brew install kotro-proxy` |
-| **VS Code / Cursor** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) (status bar + dashboard link) |
-| **GitHub Release** | [Download binary](https://github.com/kotro-labs/kotro-proxy-engine/releases) for your platform |
-| **From source** | `make build` or `cd rust && cargo run -p kotro-proxy` |
+| **Homebrew** | `brew install kotro-labs/tap/kotro` |
+| **VS Code / Cursor** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) |
+| **GitHub Release** | [Download binary](https://github.com/kotro-labs/kotro-proxy-engine/releases) |
+| **From source** | `cargo install --path rust/kotro-proxy` |
 
 Registry publish runs automatically on `v*` tags when `NPM_TOKEN` and `VSCE_PAT` secrets are configured. Marketplace uses [marketplace-publish.yml](.github/workflows/marketplace-publish.yml) (see [distributions/MARKETPLACE-AUTOMATION.md](distributions/MARKETPLACE-AUTOMATION.md)).
+
+## Plug-and-Play Guides
+
+### Cursor Integration (Cut API bills in half)
+1. In Cursor, open **Settings → Models**.
+2. Set the `OpenAI Base URL` to `http://localhost:3000/v1`.
+3. Set your OpenAI/Anthropic API Key.
+4. Enjoy semantic caching and AST pruning out of the box!
+
+### Aider with Local Ollama (Universal Translation)
+Kotro automatically translates protocols. You can use Anthropic-native tools with local OpenAI-compatible models!
+1. Start your local Ollama: `ollama run llama3`.
+2. Start Kotro, pointing upstream to Ollama: `KOTRO_UPSTREAM_URL=http://localhost:11434/v1 kotro`
+3. Run Aider:
+```bash
+export ANTHROPIC_API_KEY="dummy"
+aider --model anthropic/claude-3-5-sonnet-20241022 --openai-api-base http://localhost:3000/v1
+```
 
 ## Quick start
 
 ```bash
-git clone git@github.com:kotro-labs/kotro-proxy-engine.git
-cd kotro-proxy-engine
-
-make build
-make test
-
-# Terminal A: mock provider (:9000)
-bin/mock-upstream
-
-# Terminal B: proxy (:8080)
-KOTRO_UPSTREAM_URL=http://127.0.0.1:9000 bin/kotro-proxy
-
-# Or both:
-make dev
+# Terminal A: Start Proxy
+kotro
 ```
 
-Point your IDE or SDK at `http://localhost:8080/v1`.
+Point your IDE or SDK at `http://localhost:3000/v1`. View your savings dashboard at `http://localhost:3000/`.
 
 ### OpenAI-Compatible (DeepSeek, Groq, Ollama)
 

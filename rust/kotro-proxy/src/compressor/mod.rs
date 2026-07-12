@@ -9,8 +9,7 @@ use std::time::Duration;
 use moka::sync::Cache;
 use sha2::{Digest, Sha256};
 
-use crate::models::anthropic::MessagesRequest;
-use crate::models::openai::ChatCompletionRequest;
+use crate::models::unified::UnifiedRequest;
 
 const DEFAULT_MAX_SCOPES: u64 = 10_000;
 const DEFAULT_SCOPE_TTL: Duration = Duration::from_secs(3600);
@@ -96,76 +95,17 @@ impl StateTracker {
         (kept.join("\n\n"), true)
     }
 
-    pub fn compress_chat_request(
+    pub fn compress_unified_request(
         &self,
         scope: &Scope,
-        mut req: ChatCompletionRequest,
+        mut req: UnifiedRequest,
         enable_shrink: bool,
-    ) -> ChatCompletionRequest {
-        for msg in &mut req.messages {
-            if msg.role != "system" && msg.role != "user" {
-                continue;
-            }
-            match &mut msg.content {
-                serde_json::Value::String(text) => {
-                    let text = if enable_shrink { shrink::shrink_text(text) } else { text.to_string() };
-                    let (pruned, ok) = self.compress_message(scope, &text);
-                    if ok {
-                        msg.content = serde_json::Value::String(pruned);
-                    }
-                }
-                serde_json::Value::Array(parts) => {
-                    for part in parts {
-                        if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
-                            if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
-                                let text = if enable_shrink { shrink::shrink_text(text) } else { text.to_string() };
-                    let (pruned, ok) = self.compress_message(scope, &text);
-                                if ok {
-                                    if let Some(obj) = part.as_object_mut() {
-                                        obj.insert("text".to_string(), serde_json::Value::String(pruned));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-        req
-    }
-
-    pub fn compress_messages_request(
-        &self,
-        scope: &Scope,
-        mut req: MessagesRequest,
-        enable_shrink: bool,
-    ) -> MessagesRequest {
-        if !req.system.is_null() {
-            match &mut req.system {
-                serde_json::Value::String(text) => {
-                    let text = if enable_shrink { shrink::shrink_text(text) } else { text.to_string() };
-                    let (pruned, ok) = self.compress_message(scope, &text);
-                    if ok {
-                        req.system = serde_json::Value::String(pruned);
-                    }
-                }
-                serde_json::Value::Array(parts) => {
-                    for part in parts {
-                        if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
-                            if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
-                                let text = if enable_shrink { shrink::shrink_text(text) } else { text.to_string() };
-                    let (pruned, ok) = self.compress_message(scope, &text);
-                                if ok {
-                                    if let Some(obj) = part.as_object_mut() {
-                                        obj.insert("text".to_string(), serde_json::Value::String(pruned));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {}
+    ) -> UnifiedRequest {
+        if !req.system_prompt.is_empty() {
+            let text = if enable_shrink { shrink::shrink_text(&req.system_prompt) } else { req.system_prompt.clone() };
+            let (pruned, ok) = self.compress_message(scope, &text);
+            if ok {
+                req.system_prompt = pruned;
             }
         }
 
@@ -186,7 +126,7 @@ impl StateTracker {
                         if part.get("type").and_then(serde_json::Value::as_str) == Some("text") {
                             if let Some(text) = part.get("text").and_then(serde_json::Value::as_str) {
                                 let text = if enable_shrink { shrink::shrink_text(text) } else { text.to_string() };
-                    let (pruned, ok) = self.compress_message(scope, &text);
+                                let (pruned, ok) = self.compress_message(scope, &text);
                                 if ok {
                                     if let Some(obj) = part.as_object_mut() {
                                         obj.insert("text".to_string(), serde_json::Value::String(pruned));
@@ -273,19 +213,19 @@ mod tests {
     }
 
     #[test]
-    fn compress_messages_request_prunes_repeated_user_turn() {
+    fn compress_unified_request_prunes_repeated_user_turn() {
         let tracker = StateTracker::default();
         let s = scope("tenant-a", "session-1");
-        let req: MessagesRequest = serde_json::from_value(serde_json::json!({
+        let req: UnifiedRequest = serde_json::from_value(serde_json::json!({
             "model": "claude-3-5-sonnet-20241022",
-            "max_tokens": 64,
+            "system_prompt": "",
             "stream": true,
             "messages": [{"role": "user", "content": "hello"}]
         }))
         .unwrap();
 
-        tracker.compress_messages_request(&s, req.clone(), false);
-        let second = tracker.compress_messages_request(&s, req, false);
+        tracker.compress_unified_request(&s, req.clone(), false);
+        let second = tracker.compress_unified_request(&s, req, false);
         assert_eq!(
             second.messages[0].content,
             serde_json::Value::String(String::new())

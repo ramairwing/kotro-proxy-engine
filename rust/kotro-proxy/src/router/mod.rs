@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! Axum HTTP/2 router — mirrors `internal/server/server.go` + handlers.
 
 mod handlers;

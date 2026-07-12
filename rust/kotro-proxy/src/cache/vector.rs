@@ -58,7 +58,14 @@ impl SemanticEncoder {
 pub struct VectorIndex {
     // Maps ContextKey -> list of (ExactCacheKey, UserPrompt, Vector)
     // ContextKey is a hash of (scope, provider, model, system_prompt).
+    #[allow(clippy::type_complexity)]
     buckets: Cache<String, Arc<RwLock<Vec<(String, String, Vec<f32>)>>>>,
+}
+
+impl Default for VectorIndex {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl VectorIndex {

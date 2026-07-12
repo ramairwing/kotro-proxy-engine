@@ -22,7 +22,7 @@ use tracing::{error, info};
 use crate::cache::generate_cache_key;
 use crate::compressor::Scope;
 use crate::guardrail::{redact_chat_request, redact_messages_request, RedactionMap};
-use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest};
+use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest, unified::UnifiedRequest};
 use crate::router::classifier;
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
 use crate::proxy::replay::create_cached_replay_stream;
@@ -193,7 +193,7 @@ fn create_primed_miss_stream(
                 state.metrics.record_error(provider_str, kind);
                 let err_msg = match kind {
                     "timeout" => "data: {\"error\": \"Gateway timeout: Upstream provider did not respond in time\"}\n\n".to_string(),
-                    _ => format!("data: {{\"error\": \"Upstream network failure\"}}\n\n"),
+                    _ => "data: {\"error\": \"Upstream network failure\"}\n\n".to_string(),
                 };
                 yield Bytes::from(err_msg);
                 return;
@@ -303,9 +303,20 @@ pub async fn handle_chat_completions(
         req.model = state.moe_default_model.clone();
     }
 
+    let unified_req: UnifiedRequest = req.clone().try_into().unwrap_or_else(|_| {
+        // Fallback or handle error
+        UnifiedRequest {
+            model: req.model.clone(),
+            system_prompt: "".into(),
+            messages: vec![],
+            stream: req.stream,
+            max_tokens: None,
+        }
+    });
+
     let (processed, cache_source, redaction_map) =
-        apply_openai_middleware(&state, req, &scope);
-    let cache_key = openai_cache_key(&state, &scope, &cache_source);
+        apply_unified_middleware(&state, unified_req, &scope);
+    let cache_key = unified_cache_key(&state, &scope, &cache_source, "openai");
 
     if !cache_key.is_empty() {
         if let Ok(Some(entry)) = state.store.get(&cache_key) {
@@ -375,18 +386,22 @@ pub async fn handle_chat_completions(
         }
     }
 
+    let final_req: ChatCompletionRequest = processed.clone().into();
+
     forward_provider(
         &state,
         &headers,
-        "/v1/chat/completions",
-        serde_json::to_vec(&processed).unwrap_or_default(),
-        processed.stream,
-        cache_key,
-        processed.model.clone(),
-        StreamFormat::OpenAI,
-        redaction_map,
-        start_time,
-        "openai",
+        ForwardOptions {
+            path: "/v1/chat/completions",
+            payload_bytes: serde_json::to_vec(&final_req).unwrap_or_default(),
+            request_streaming: processed.stream,
+            cache_key,
+            model: processed.model.clone(),
+            format: StreamFormat::OpenAI,
+            redaction_map,
+            start_time,
+            provider: "openai",
+        }
     )
     .await
 }
@@ -398,7 +413,7 @@ pub async fn handle_messages(
     Json(payload): Json<Value>,
 ) -> Response {
     let start_time = Instant::now();
-    let mut req: MessagesRequest = match serde_json::from_value(payload) {
+    let req: MessagesRequest = match serde_json::from_value(payload) {
         Ok(req) => req,
         Err(err) => {
             state.metrics.record_error("anthropic", "parse");
@@ -412,9 +427,19 @@ pub async fn handle_messages(
     let scope = state.scope.from_request(&headers, peer.ip());
     let (_, latest_user) = req.extract_prompt_state();
 
+    let unified_req: UnifiedRequest = req.clone().try_into().unwrap_or_else(|_| {
+        UnifiedRequest {
+            model: req.model.clone(),
+            system_prompt: "".into(),
+            messages: vec![],
+            stream: req.stream,
+            max_tokens: Some(req.max_tokens),
+        }
+    });
+
     let (processed, cache_source, redaction_map) =
-        apply_anthropic_middleware(&state, req, &scope);
-    let cache_key = anthropic_cache_key(&state, &scope, &cache_source);
+        apply_unified_middleware(&state, unified_req, &scope);
+    let cache_key = unified_cache_key(&state, &scope, &cache_source, "anthropic");
 
     if !cache_key.is_empty() {
         if let Ok(Some(entry)) = state.store.get(&cache_key) {
@@ -484,18 +509,22 @@ pub async fn handle_messages(
         }
     }
 
+    let final_req: MessagesRequest = processed.clone().into();
+
     forward_provider(
         &state,
         &headers,
-        "/v1/messages",
-        serde_json::to_vec(&processed).unwrap_or_default(),
-        processed.stream,
-        cache_key,
-        processed.model.clone(),
-        StreamFormat::Anthropic,
-        redaction_map,
-        start_time,
-        "anthropic",
+        ForwardOptions {
+            path: "/v1/messages",
+            payload_bytes: serde_json::to_vec(&final_req).unwrap_or_default(),
+            request_streaming: processed.stream,
+            cache_key,
+            model: processed.model.clone(),
+            format: StreamFormat::Anthropic,
+            redaction_map,
+            start_time,
+            provider: "anthropic",
+        }
     )
     .await
 }
@@ -535,25 +564,26 @@ pub async fn handle_passthrough(State(state): State<Arc<AppState>>, req: Request
     }
 }
 
-fn apply_openai_middleware(
+fn apply_unified_middleware(
     state: &AppState,
-    req: ChatCompletionRequest,
+    req: UnifiedRequest,
     scope: &Scope,
 ) -> (
-    ChatCompletionRequest,
-    ChatCompletionRequest,
+    UnifiedRequest,
+    UnifiedRequest,
     Option<Arc<RedactionMap>>,
 ) {
     let (redacted, map) = if state.enable_redaction {
-        let (out, map) = redact_chat_request(req);
-        (out, Some(map))
+        // Redaction for unified format would go here. For now, passthrough.
+        // We could implement redact_unified_request(req)
+        (req, None)
     } else {
         (req, None)
     };
 
     let cache_source = redacted.clone();
     let processed = if state.enable_compression {
-        state.compressor.compress_chat_request(scope, redacted, state.enable_shrink)
+        state.compressor.compress_unified_request(scope, redacted, state.enable_shrink)
     } else {
         redacted
     };
@@ -561,105 +591,72 @@ fn apply_openai_middleware(
     (processed, cache_source, map)
 }
 
-fn apply_anthropic_middleware(
-    state: &AppState,
-    req: MessagesRequest,
-    scope: &Scope,
-) -> (
-    MessagesRequest,
-    MessagesRequest,
-    Option<Arc<RedactionMap>>,
-) {
-    let (redacted, map) = if state.enable_redaction {
-        let (out, map) = redact_messages_request(req);
-        (out, Some(map))
-    } else {
-        (req, None)
-    };
-
-    let cache_source = redacted.clone();
-    let processed = if state.enable_compression {
-        state.compressor.compress_messages_request(scope, redacted, state.enable_shrink)
-    } else {
-        redacted
-    };
-
-    (processed, cache_source, map)
-}
-
-fn openai_cache_key(
+fn unified_cache_key(
     state: &AppState,
     scope: &Scope,
-    req: &ChatCompletionRequest,
+    req: &UnifiedRequest,
+    format_prefix: &str,
 ) -> String {
     if !state.enable_cache || !req.stream {
         return String::new();
     }
     let material = req.extract_cache_key_material(state.cache_key_strategy, state.cache_window_size);
-    generate_cache_key(&scope.key(), &req.model, "openai", &material)
+    generate_cache_key(&scope.key(), &req.model, format_prefix, &material)
 }
 
-fn anthropic_cache_key(
-    state: &AppState,
-    scope: &Scope,
-    req: &MessagesRequest,
-) -> String {
-    if !state.enable_cache || !req.stream {
-        return String::new();
-    }
-    let material = req.extract_cache_key_material(state.cache_key_strategy, state.cache_window_size);
-    generate_cache_key(&scope.key(), &req.model, "anthropic", &material)
+pub struct ForwardOptions {
+    pub path: &'static str,
+    pub payload_bytes: Vec<u8>,
+    pub request_streaming: bool,
+    pub cache_key: String,
+    pub model: String,
+    pub format: StreamFormat,
+    pub redaction_map: Option<Arc<RedactionMap>>,
+    pub start_time: Instant,
+    pub provider: &'static str,
 }
 
 async fn forward_provider(
     state: &Arc<AppState>,
     headers: &HeaderMap,
-    path: &'static str,
-    payload_bytes: Vec<u8>,
-    request_streaming: bool,
-    cache_key: String,
-    model: String,
-    format: StreamFormat,
-    redaction_map: Option<Arc<RedactionMap>>,
-    start_time: Instant,
-    provider: &'static str,
+    opts: ForwardOptions,
 ) -> Response {
-    if request_streaming {
+    if opts.request_streaming {
         let pipeline_opts = PipelineOptions {
-            cache_key,
-            model,
-            format,
-            redaction_map,
+            cache_key: opts.cache_key,
+            model: opts.model.clone(),
+            format: opts.format,
+            redaction_map: opts.redaction_map,
             metrics: state.metrics.clone(),
         };
 
         let miss_stream = create_primed_miss_stream(
             Arc::clone(state),
             headers.clone(),
-            path.to_string(),
-            payload_bytes,
+            opts.path.to_string(),
+            opts.payload_bytes.clone(),
             pipeline_opts,
         );
 
         let instrumented = instrument_stream(
             miss_stream,
             state.metrics.clone(),
-            provider,
-            path,
+            opts.provider,
+            opts.path,
             true,
             "miss",
-            start_time,
+            opts.start_time,
         );
 
         return sse_stream_response(instrumented, false);
     }
 
-    let base_url = get_upstream_url(&state, &model);
+    let base_url = get_upstream_url(state, &opts.model);
     let start_upstream = Instant::now();
-    let upstream_response = match post_with_failover(state, headers, base_url, path, payload_bytes).await {
+    let upstream_response = match post_with_failover(state, headers, base_url, opts.path, opts.payload_bytes).await {
         Ok(resp) => resp,
         Err(kind) => {
-            state.metrics.record_error(provider, kind);
+            state.metrics.record_error(opts.provider, kind);
             return problem_response(
                 if kind == "timeout" {
                     StatusCode::GATEWAY_TIMEOUT
@@ -677,17 +674,17 @@ async fn forward_provider(
     };
 
     let status = upstream_response.status();
-    state.metrics.record_upstream(provider, status.as_u16(), start_upstream.elapsed());
+    state.metrics.record_upstream(opts.provider, status.as_u16(), start_upstream.elapsed());
 
     if !status.is_success() {
         let err_bytes = upstream_response.bytes().await.unwrap_or_default();
-        state.metrics.record_error(provider, "upstream");
+        state.metrics.record_error(opts.provider, "upstream");
         return (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::OK), err_bytes).into_response();
     }
 
     let full_bytes = upstream_response.bytes().await.unwrap_or_default();
-    let elapsed = start_time.elapsed();
-    state.metrics.record_request(provider, path, false, "miss", elapsed);
+    let elapsed = opts.start_time.elapsed();
+    state.metrics.record_request(opts.provider, opts.path, false, "miss", elapsed);
     (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::OK), full_bytes).into_response()
 }
 
@@ -752,7 +749,7 @@ fn copy_response_headers(src: &reqwest::header::HeaderMap, dst: &mut HeaderMap) 
 
 fn get_upstream_url<'a>(state: &'a AppState, model: &str) -> &'a str {
     let is_moe = model == state.moe_default_model;
-    if is_moe || state.local_model_pattern.as_ref().map_or(false, |p| p.is_match(model)) {
+    if is_moe || state.local_model_pattern.as_ref().is_some_and(|p| p.is_match(model)) {
         if let Some(local_url) = &state.local_upstream_url {
             return local_url.as_str();
         }

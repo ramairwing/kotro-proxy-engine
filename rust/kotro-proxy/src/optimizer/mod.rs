@@ -28,7 +28,7 @@ pub fn enforce_cache_matrix(req: &mut ChatCompletionRequest) {
         }
     }
 
-    context_messages.sort_by(|a, b| content_text(&a.content).cmp(&content_text(&b.content)));
+    context_messages.sort_by_cached_key(|a| content_text(&a.content));
 
     let mut rebuilt = Vec::with_capacity(req.messages.len());
     rebuilt.extend(system_messages);

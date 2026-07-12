@@ -51,7 +51,7 @@ impl Server {
         self.router.clone()
     }
 
-    pub async fn run(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn run(mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let proxy_addr = normalize_listen_addr(&self.cfg.listen_addr);
         let proxy_listener = tokio::net::TcpListener::bind(&proxy_addr).await?;
         let proxy_local = proxy_listener.local_addr()?;
@@ -60,7 +60,8 @@ impl Server {
         let proxy_server = axum::serve(proxy_listener, proxy_service)
             .with_graceful_shutdown(shutdown_signal());
 
-        if self.cfg.enable_metrics && self.telemetry_router.is_some() {
+        if self.cfg.enable_metrics {
+            if let Some(telemetry_router) = self.telemetry_router.take() {
             let metrics_addr = normalize_listen_addr(&self.cfg.metrics_addr);
             let metrics_listener = tokio::net::TcpListener::bind(&metrics_addr).await?;
             let metrics_local = metrics_listener.local_addr()?;
@@ -78,7 +79,7 @@ impl Server {
                 "kotrolabs proxy listening"
             );
 
-            let metrics_service = self.telemetry_router.unwrap().into_make_service_with_connect_info::<SocketAddr>();
+            let metrics_service = telemetry_router.into_make_service_with_connect_info::<SocketAddr>();
             let metrics_server = axum::serve(metrics_listener, metrics_service)
                 .with_graceful_shutdown(shutdown_signal());
 
@@ -92,6 +93,7 @@ impl Server {
                     if let Err(err) = res {
                         tracing::error!(error = %err, "metrics server error");
                     }
+                }
                 }
             }
         } else {

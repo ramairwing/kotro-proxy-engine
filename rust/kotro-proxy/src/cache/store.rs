@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! redb-backed semantic cache — mirrors `internal/cache/store.go`.
 
 use std::path::{Path, PathBuf};
@@ -389,7 +390,7 @@ mod tests {
     #[test]
     fn zero_copy_read_does_not_clone_until_hit() {
         let dir = tempfile::tempdir().unwrap();
-        let store = Store::open(&dir.path().join("mmap.db")).unwrap();
+        let store = Store::open(dir.path().join("mmap.db")).unwrap();
         store
             .put(Entry {
                 key: "k".into(),

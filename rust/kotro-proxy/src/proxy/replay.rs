@@ -50,7 +50,7 @@ pub fn create_cached_replay_stream(
         reader.mark_eof();
 
         loop {
-            match reader.next() {
+            match reader.next_frame() {
                 Ok(frame) => {
                     yield client_frame_bytes(&frame, redaction_map.as_ref(), format, &metrics);
                     if !hit_delay.is_zero() {

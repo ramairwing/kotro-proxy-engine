@@ -13,19 +13,10 @@ const HEADER_SESSION_ID: &str = "x-session-id";
 const DEFAULT_TENANT_ID: &str = "default";
 const DEFAULT_SESSION_ID: &str = "default";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ScopeResolver {
     pub trust_upstream_gateway: bool,
     pub trusted_proxy_cidrs: Vec<IpNet>,
-}
-
-impl Default for ScopeResolver {
-    fn default() -> Self {
-        Self {
-            trust_upstream_gateway: false,
-            trusted_proxy_cidrs: Vec::new(),
-        }
-    }
 }
 
 impl ScopeResolver {
