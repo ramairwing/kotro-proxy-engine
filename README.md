@@ -8,6 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/kotro-labs/kotro-proxy-engine)](https://github.com/kotro-labs/kotro-proxy-engine/releases)
 [![npm](https://img.shields.io/npm/v/@kotro-labs/proxy-engine)](https://www.npmjs.com/package/@kotro-labs/proxy-engine)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/kotrolabs.kotro-proxy-engine?label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **The open-source, single-binary local AI proxy** — intercept streaming LLM traffic from OpenAI and Anthropic SDKs, cut token waste, and keep secrets off the wire.
 
