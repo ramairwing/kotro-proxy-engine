@@ -1,4 +1,4 @@
-.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit eval-suite update-homebrew-shas post-release-homebrew go-live package-extension sync-brand-icon clean docker-build docker-up docker-down
+.PHONY: build test bench mock proxy run dev load-test cancel-audit rust-cancel-audit audit eval-suite demo-savings update-homebrew-shas post-release-homebrew go-live package-extension sync-brand-icon clean docker-build docker-up docker-down
 
 build: proxy mock
 
@@ -45,6 +45,11 @@ audit: cancel-audit rust-cancel-audit
 
 eval-suite:
 	go run benchmarks/eval-suite/main.go
+
+# Offline savings demo — no API keys required; uses bundled mock upstream.
+# Screenshot the terminal output for Show HN / README.
+demo-savings:
+	bash scripts/demo-savings.sh
 
 update-homebrew-shas:
 	bash scripts/update-homebrew-shas.sh $(VERSION)
