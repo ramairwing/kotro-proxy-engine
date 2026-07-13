@@ -19,13 +19,14 @@ use serde_json::Value;
 use std::time::Instant;
 use tracing::{error, info};
 
+use crate::budget::BudgetTracker;
 use crate::cache::generate_cache_key;
 use crate::compressor::Scope;
+use crate::guardrail::{InjectionFinding, RedactionMap};
 // redact_chat_request / redact_messages_request are defined in crate::guardrail but
 // not yet called here — redaction is currently done via apply_unified_middleware's
-// passthrough stub. Import only RedactionMap (used in ForwardOptions / apply_unified_middleware).
+// passthrough stub. Import only what is used.
 // TODO: wire per-format redaction once redact_unified_request is implemented.
-use crate::guardrail::RedactionMap;
 use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest, unified::UnifiedRequest};
 use crate::router::classifier;
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
@@ -57,6 +58,40 @@ fn problem_response(status: StatusCode, title: &str, detail: &str) -> Response {
     response
 }
 
+
+/// Attach a single header to a [`Response`].
+///
+/// Silently ignores invalid names or values rather than panicking, matching the
+/// philosophy that observability headers must never break the primary request path.
+fn try_set_header(resp: &mut Response, name: &str, value: &str) {
+    if let (Ok(n), Ok(v)) = (
+        axum::http::HeaderName::from_bytes(name.as_bytes()),
+        HeaderValue::from_str(value),
+    ) {
+        resp.headers_mut().insert(n, v);
+    }
+}
+
+/// Attach injection and budget headers to a response in one call.
+fn attach_guardrail_headers(
+    resp: &mut Response,
+    finding: Option<&InjectionFinding>,
+    tokens_used: u64,
+    budget: &BudgetTracker,
+    scope_key: &str,
+) {
+    try_set_header(resp, "x-kotro-tokens-used", &tokens_used.to_string());
+    if budget.limit_tokens > 0 {
+        try_set_header(
+            resp,
+            "x-kotro-budget-remaining",
+            &budget.remaining(scope_key).to_string(),
+        );
+    }
+    if let Some(f) = finding {
+        try_set_header(resp, "x-kotro-injection-warning", f.pattern_name);
+    }
+}
 
 const SSE_HEADERS: [(&str, &str); 4] = [
     ("content-type", "text/event-stream"),
@@ -349,6 +384,45 @@ pub async fn handle_chat_completions(
         }
     });
 
+    // ── Injection scan ────────────────────────────────────────────────────────
+    // Run before the cache lookup so we never serve a cached response to a
+    // poisoned request, and never cache the downstream result of one.
+    let injection_finding: Option<InjectionFinding> = if state.enable_injection_scan {
+        crate::guardrail::scan_messages(&unified_req.messages)
+    } else {
+        None
+    };
+    if let Some(ref finding) = injection_finding {
+        tracing::warn!(
+            pattern = finding.pattern_name,
+            role = %finding.role,
+            snippet = %finding.matched_snippet,
+            "kotro guardrail: MCP prompt injection detected"
+        );
+        if state.injection_block_on_detection {
+            return problem_response(
+                StatusCode::BAD_REQUEST,
+                "Prompt Injection Detected",
+                &format!(
+                    "Pattern '{}' detected in {} message. Request blocked by Kotro guardrail.",
+                    finding.pattern_name, finding.role
+                ),
+            );
+        }
+    }
+
+    // ── Token estimation (used for budget and response headers) ───────────────
+    let scope_key = scope.key();
+    let estimated_input_tokens: u64 = {
+        let mut n = BudgetTracker::estimate_tokens(&unified_req.system_prompt);
+        for msg in &unified_req.messages {
+            n = n.saturating_add(BudgetTracker::estimate_tokens(
+                &crate::models::openai::content_text(&msg.content),
+            ));
+        }
+        n
+    };
+
     let (processed, cache_source, redaction_map) =
         apply_unified_middleware(&state, unified_req, &scope);
     let cache_key = unified_cache_key(&state, &scope, &cache_source, "openai");
@@ -373,10 +447,17 @@ pub async fn handle_chat_completions(
                 "hit",
                 start_time,
             );
-            return sse_stream_response(instrumented, true);
+            let mut resp = sse_stream_response(instrumented, true);
+            // Cache hits don't count toward budget (zero upstream cost), but
+            // surface the current usage + injection warning if present.
+            attach_guardrail_headers(
+                &mut resp, injection_finding.as_ref(),
+                state.budget.current(&scope_key), &state.budget, &scope_key,
+            );
+            return resp;
         }
         info!(key = %cache_key, format = "openai", "cache miss");
-        
+
         if let Some(user_emb) =
             embed_off_thread(state.vector_encoder.clone(), latest_user.clone()).await
         {
@@ -401,14 +482,39 @@ pub async fn handle_chat_completions(
                         "hit",
                         start_time,
                     );
-                    return sse_stream_response(instrumented, true);
+                    let mut resp = sse_stream_response(instrumented, true);
+                    attach_guardrail_headers(
+                        &mut resp, injection_finding.as_ref(),
+                        state.budget.current(&scope_key), &state.budget, &scope_key,
+                    );
+                    return resp;
                 }
             }
             state.vector_index.insert(context_key, cache_key.clone(), latest_user.clone(), user_emb);
         }
 
         state.metrics.record_cache_miss("openai");
-        
+
+        // ── Budget enforcement (cache misses only) ────────────────────────────
+        if state.budget.is_exceeded(&scope_key) {
+            tracing::warn!(
+                scope = %scope_key,
+                limit = state.budget.limit_tokens,
+                used = state.budget.current(&scope_key),
+                "kotro guardrail: session token budget exceeded"
+            );
+            if state.budget.block_on_exceeded {
+                return problem_response(
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "Session Budget Exceeded",
+                    &format!(
+                        "Session token budget of {} tokens exceeded. Resets after idle period.",
+                        state.budget.limit_tokens
+                    ),
+                );
+            }
+        }
+
         let count = state.circuit_breaker.get(&cache_key).unwrap_or(0) + 1;
         state.circuit_breaker.insert(cache_key.clone(), count);
         if count >= 4 {
@@ -425,7 +531,7 @@ pub async fn handle_chat_completions(
 
     let final_req: ChatCompletionRequest = processed.clone().into();
 
-    forward_provider(
+    let mut resp = forward_provider(
         &state,
         &headers,
         ForwardOptions {
@@ -440,7 +546,12 @@ pub async fn handle_chat_completions(
             provider: "openai",
         }
     )
-    .await
+    .await;
+
+    // Record budget usage and attach guardrail headers.
+    let tokens_used = state.budget.record(&scope_key, estimated_input_tokens);
+    attach_guardrail_headers(&mut resp, injection_finding.as_ref(), tokens_used, &state.budget, &scope_key);
+    resp
 }
 
 pub async fn handle_messages(
@@ -474,6 +585,43 @@ pub async fn handle_messages(
         }
     });
 
+    // ── Injection scan ────────────────────────────────────────────────────────
+    let injection_finding: Option<InjectionFinding> = if state.enable_injection_scan {
+        crate::guardrail::scan_messages(&unified_req.messages)
+    } else {
+        None
+    };
+    if let Some(ref finding) = injection_finding {
+        tracing::warn!(
+            pattern = finding.pattern_name,
+            role = %finding.role,
+            snippet = %finding.matched_snippet,
+            "kotro guardrail: MCP prompt injection detected"
+        );
+        if state.injection_block_on_detection {
+            return problem_response(
+                StatusCode::BAD_REQUEST,
+                "Prompt Injection Detected",
+                &format!(
+                    "Pattern '{}' detected in {} message. Request blocked by Kotro guardrail.",
+                    finding.pattern_name, finding.role
+                ),
+            );
+        }
+    }
+
+    // ── Token estimation ──────────────────────────────────────────────────────
+    let scope_key = scope.key();
+    let estimated_input_tokens: u64 = {
+        let mut n = BudgetTracker::estimate_tokens(&unified_req.system_prompt);
+        for msg in &unified_req.messages {
+            n = n.saturating_add(BudgetTracker::estimate_tokens(
+                &crate::models::openai::content_text(&msg.content),
+            ));
+        }
+        n
+    };
+
     let (processed, cache_source, redaction_map) =
         apply_unified_middleware(&state, unified_req, &scope);
     let cache_key = unified_cache_key(&state, &scope, &cache_source, "anthropic");
@@ -498,7 +646,12 @@ pub async fn handle_messages(
                 "hit",
                 start_time,
             );
-            return sse_stream_response(instrumented, true);
+            let mut resp = sse_stream_response(instrumented, true);
+            attach_guardrail_headers(
+                &mut resp, injection_finding.as_ref(),
+                state.budget.current(&scope_key), &state.budget, &scope_key,
+            );
+            return resp;
         }
         info!(key = %cache_key, format = "anthropic", "cache miss");
 
@@ -526,13 +679,38 @@ pub async fn handle_messages(
                         "hit",
                         start_time,
                     );
-                    return sse_stream_response(instrumented, true);
+                    let mut resp = sse_stream_response(instrumented, true);
+                    attach_guardrail_headers(
+                        &mut resp, injection_finding.as_ref(),
+                        state.budget.current(&scope_key), &state.budget, &scope_key,
+                    );
+                    return resp;
                 }
             }
             state.vector_index.insert(context_key, cache_key.clone(), latest_user.clone(), user_emb);
         }
 
         state.metrics.record_cache_miss("anthropic");
+
+        // ── Budget enforcement (cache misses only) ────────────────────────────
+        if state.budget.is_exceeded(&scope_key) {
+            tracing::warn!(
+                scope = %scope_key,
+                limit = state.budget.limit_tokens,
+                used = state.budget.current(&scope_key),
+                "kotro guardrail: session token budget exceeded"
+            );
+            if state.budget.block_on_exceeded {
+                return problem_response(
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "Session Budget Exceeded",
+                    &format!(
+                        "Session token budget of {} tokens exceeded. Resets after idle period.",
+                        state.budget.limit_tokens
+                    ),
+                );
+            }
+        }
 
         let count = state.circuit_breaker.get(&cache_key).unwrap_or(0) + 1;
         state.circuit_breaker.insert(cache_key.clone(), count);
@@ -550,7 +728,7 @@ pub async fn handle_messages(
 
     let final_req: MessagesRequest = processed.clone().into();
 
-    forward_provider(
+    let mut resp = forward_provider(
         &state,
         &headers,
         ForwardOptions {
@@ -565,7 +743,11 @@ pub async fn handle_messages(
             provider: "anthropic",
         }
     )
-    .await
+    .await;
+
+    let tokens_used = state.budget.record(&scope_key, estimated_input_tokens);
+    attach_guardrail_headers(&mut resp, injection_finding.as_ref(), tokens_used, &state.budget, &scope_key);
+    resp
 }
 
 

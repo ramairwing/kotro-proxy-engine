@@ -10,6 +10,7 @@ pub mod router;
 pub mod server;
 pub mod sse;
 
+pub mod budget;
 pub mod compressor;
 pub mod guardrail;
 pub mod optimizer;

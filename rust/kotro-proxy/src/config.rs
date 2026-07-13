@@ -30,6 +30,19 @@ pub struct Config {
     pub local_model_pattern: Option<String>,
     pub local_upstream_url: Option<String>,
     pub moe_default_model: String,
+    /// Scan tool-call results and user messages for prompt injection patterns.
+    /// Default: `true`. Disable with `KOTRO_ENABLE_INJECTION_SCAN=false`.
+    pub enable_injection_scan: bool,
+    /// Block requests that trigger the injection scanner (HTTP 400) instead of
+    /// only warning. Default: `false`. Enable with `KOTRO_INJECTION_BLOCK=true`.
+    pub injection_block_on_detection: bool,
+    /// Estimated-token limit per scope per session (0 = unlimited).
+    /// Set with `KOTRO_SESSION_TOKEN_BUDGET=<n>`.
+    pub session_token_budget: u64,
+    /// Block requests that exceed the session budget (HTTP 429) instead of only
+    /// setting `X-Kotro-Budget-Remaining: 0`. Default: `false`.
+    /// Enable with `KOTRO_BUDGET_BLOCK=true`.
+    pub budget_block_on_exceeded: bool,
 }
 
 impl Default for Config {
@@ -60,6 +73,10 @@ impl Default for Config {
             local_model_pattern: None,
             local_upstream_url: None,
             moe_default_model: "llama3".into(),
+            enable_injection_scan: true,
+            injection_block_on_detection: false,
+            session_token_budget: 0,
+            budget_block_on_exceeded: false,
         }
     }
 }
@@ -143,6 +160,10 @@ impl Config {
             local_model_pattern: env_opt("KOTRO_LOCAL_MODEL_PATTERN"),
             local_upstream_url: env_opt("KOTRO_LOCAL_UPSTREAM_URL"),
             moe_default_model: env_or("KOTRO_MOE_DEFAULT_MODEL", defaults.moe_default_model),
+            enable_injection_scan: env_bool("KOTRO_ENABLE_INJECTION_SCAN", defaults.enable_injection_scan),
+            injection_block_on_detection: env_bool("KOTRO_INJECTION_BLOCK", defaults.injection_block_on_detection),
+            session_token_budget: env_u64("KOTRO_SESSION_TOKEN_BUDGET", defaults.session_token_budget),
+            budget_block_on_exceeded: env_bool("KOTRO_BUDGET_BLOCK", defaults.budget_block_on_exceeded),
         }
     }
 }

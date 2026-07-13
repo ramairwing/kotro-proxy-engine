@@ -49,6 +49,12 @@ pub struct AppState {
     pub vector_encoder: Arc<crate::cache::vector::SemanticEncoder>,
     pub vector_index: Arc<crate::cache::vector::VectorIndex>,
     pub circuit_breaker: moka::sync::Cache<String, u32>,
+    /// Run injection scanner on tool-call results and user messages.
+    pub enable_injection_scan: bool,
+    /// Block (HTTP 400) when injection is detected, rather than just warning.
+    pub injection_block_on_detection: bool,
+    /// Per-scope session token budget tracker.
+    pub budget: Arc<crate::budget::BudgetTracker>,
 }
 
 impl AppState {
@@ -94,6 +100,13 @@ impl AppState {
             circuit_breaker: moka::sync::Cache::builder()
                 .time_to_live(Duration::from_secs(60))
                 .build(),
+            enable_injection_scan: cfg.enable_injection_scan,
+            injection_block_on_detection: cfg.injection_block_on_detection,
+            budget: Arc::new(crate::budget::BudgetTracker::new(
+                cfg.session_token_budget,
+                cfg.budget_block_on_exceeded,
+                std::time::Duration::from_secs(86_400),
+            )),
         }
     }
 }
