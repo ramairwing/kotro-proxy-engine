@@ -8,15 +8,10 @@ on:
 
 jobs:
   test:
-    name: Go + Rust tests
+    name: Rust tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
 
       - name: Install Linux build dependencies
         run: sudo apt-get update && sudo apt-get install -y pkg-config
@@ -27,9 +22,20 @@ jobs:
         with:
           workspaces: rust -> target
 
-      - name: Go tests
-        run: go test ./...
-
       - name: Rust tests
         working-directory: rust
         run: cargo test
+
+  go-compile-check:
+    name: Go compile check (reference implementation — frozen at v0.1.0-go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go build (compile only)
+        run: go build ./...

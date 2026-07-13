@@ -195,9 +195,13 @@ K6_VUS=500 K6_DURATION=30s make cancel-audit
 
 Requires `KOTRO_ENABLE_PPROF=true` (set automatically by `run_audit.sh`). Pass criteria: post-stress goroutine count within ±5 of baseline.
 
-## Rust Phase 2
+## Go Reference Implementation (Frozen at v0.1.0-go)
 
-Go Phase 1 is the behavioral reference. The Rust port lives in `rust/`:
+The `internal/` directory contains the original Go implementation, tagged **[v0.1.0-go](https://github.com/kotro-labs/kotro-proxy-engine/releases/tag/v0.1.0-go)** and frozen. It is preserved as a behavioral reference — the Rust implementation is what you should run.
+
+> **No new features will land in Go.** Bug reports and PRs for `internal/` will not be accepted. If you're reading the Go code, treat it as an annotated spec for the Rust port.
+
+## Rust implementation
 
 ```bash
 cd rust && cargo test && cargo run -p kotro-proxy
@@ -247,14 +251,16 @@ IDE / SDK  →  kotro-proxy (:8080)
 ## Project layout
 
 ```
-cmd/proxy/           Main proxy binary
+rust/kotro-proxy/    Active Rust implementation (run this)
+cmd/proxy/           Go proxy binary (frozen — reference only)
 cmd/mockupstream/    Offline OpenAI + Anthropic SSE server
-internal/cache/      bbolt prompt-state cache
-internal/compressor/ Context block dedup
-internal/guardrail/  Secret redaction
-internal/models/     OpenAI + Anthropic request types
-internal/proxy/      Handlers, SSE interceptor pipeline
-internal/sse/        Frame parser (OpenAI data: + Anthropic event:)
+internal/            Go reference implementation (frozen at v0.1.0-go)
+  cache/             bbolt prompt-state cache
+  compressor/        Context block dedup
+  guardrail/         Secret redaction
+  models/            OpenAI + Anthropic request types
+  proxy/             Handlers, SSE interceptor pipeline
+  sse/               Frame parser (OpenAI data: + Anthropic event:)
 scripts/bench/       k6 / vegeta load tests
 ```
 

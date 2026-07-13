@@ -18,6 +18,7 @@
 | PII / secret redaction | `guardrail/redactor.rs` | 10 pattern types including DB URLs, passwords, emails. Restores in streamed response. |
 | Reasoning model budget controller | `optimizer/reasoning.rs` | Caps `thinking.budget_tokens` (Anthropic) / `max_completion_tokens` (OpenAI). `KOTRO_MAX_THINKING_TOKENS`, `KOTRO_REASONING_BLOCK`. 14 tests. |
 | MCP tool call response cache | `cache/tool.rs` | In-memory, per-scope, per-category TTL (read=30s/status=5m/search=1h). Write-op path invalidation. `KOTRO_ENABLE_TOOL_CACHE`. 13 tests. |
+| Go freeze | `internal/`, `.github/workflows/ci.yml`, `README.md` | Tagged `v0.1.0-go`. CI reduced to `go build ./...` only. README marks `internal/` as frozen reference. |
 | kotro-core library crate | `rust/kotro-core/` | Embeddable crate, foundation for WASM plugin surface. |
 | Supply-chain signing (SBOM + cosign) | `.github/workflows/release.yml` | Keyless OIDC signing via Sigstore. SPDX SBOM generated on release. |
 | CI cancel-storm leak audit | `.github/workflows/cancel-audit.yml` | k6 load test, goroutine leak detection. Separate non-blocking workflow. |
@@ -34,16 +35,7 @@
 
 ## ❌ Not Yet Built — Priority Order
 
-### 1. Go freeze *(next up — housekeeping before HN launch)*
-- **What:** Cache tool call *results* (file reads, git status, search) by `(tool_name, canonicalized_args)`. Short configurable TTL. Flush on write tool call for same path.
-- **Where:** New file `cache/tool.rs`. Hook into MCP tool response path in `handlers.rs`.
-- **Why:** In a typical coding session, 30–50% of tool calls are exact repeats. Caching them eliminates both latency and token cost of re-sending results into context.
-
-### 3. Go freeze *(housekeeping, cleaner for HN readers)*
-- **What:** Tag a final Go release (`v0.1.0-go`), mark `internal/` as reference-only in README, shrink Go CI to compile + smoke test only.
-- **Why:** HN readers will read the source. A frozen Go codebase alongside active Rust is a clear story. An unmaintained parallel impl is a red flag.
-
-### 4. README strategic reframe *(30 min, changes the pitch)*
+### 1. README strategic reframe *(30 min, changes the pitch)*
 - **What:** Change the one-line description from "a proxy that reduces API costs" to "the local security and efficiency layer for MCP-native agentic AI." Update the intro paragraph to lead with MCP security (injection scanner) before cost savings.
 - **Why:** MCP security is the timely, differentiated angle. Cost savings is table stakes.
 
@@ -74,8 +66,8 @@
 - [x] Demo script produces correct output (68% savings)
 - [x] Show HN draft ready
 - [x] GitHub storefront set
-- [ ] Reasoning model budget controller shipped
-- [ ] Go declared frozen (tag `v0.1.0-go`, README updated)
+- [x] Reasoning model budget controller shipped
+- [x] Go declared frozen (tag `v0.1.0-go`, README updated, CI = compile-only)
 - [ ] `make eval-suite` results committed
 - [ ] `brew install kotro-labs/tap/kotro` verified on a clean machine
 - [ ] `curl` installer verified on a clean machine
