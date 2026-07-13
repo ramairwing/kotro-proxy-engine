@@ -40,10 +40,10 @@ Revised framing (see conversation log): "match Go's test count" is a proxy metri
 
 ## P3 — Trust and launch readiness
 
-- [ ] Add `CONTRIBUTING.md`, GitHub issue templates, `CODE_OF_CONDUCT.md` — none currently exist in `.github/`.
-- [ ] Make `benchmarks/eval-suite/RESULTS.md` a living artifact re-run and committed on every release.
-- [ ] Add a README comparison table vs. LiteLLM / Portkey stating plainly who should use which — narrow the pitch to "single-binary, zero-dependency, local-first proxy for coding agents."
-- [ ] Design-partner outreach + Show HN launch, per the existing `docs/roadmap/90-DAY-ROADMAP.md` — sequence after P0–P2 since the launch post will be read against source code.
+- [x] Add `CONTRIBUTING.md`, GitHub issue templates, `CODE_OF_CONDUCT.md`. `CONTRIBUTING.md` explicitly directs new feature work to Rust (not Go), points at this doc for what's planned, and calls out the redaction-pattern and cache-key-wiring pitfalls found during P1 so they don't regress. Issue templates (`bug_report.yml`, `feature_request.yml`) ask which engine (Rust/Go) up front, plus a `config.yml` routing security reports to a private GitHub security advisory instead of a public issue. `CODE_OF_CONDUCT.md` is the standard Contributor Covenant 2.1.
+- [x] Add a README comparison table vs. LiteLLM / Portkey / TokenShift stating plainly who should use which. Rewrote the "premier alternative to hosted gateways like TokenShift" line from the original README (the exact overclaiming pattern flagged in `docs/review/2026-07-strategic-review.md`) into a narrower, more defensible pitch: single-binary, zero-dependency, local-first, no third party ever sees your traffic — explicitly *not* competing with LiteLLM on provider breadth or Portkey on guardrail depth.
+- [ ] Make `benchmarks/eval-suite/RESULTS.md` a living artifact re-run and committed on every release. Not done this round — this is a release-process change (wiring `make eval-suite` into `release.yml` or a pre-release checklist), not a one-off doc edit, and deserves its own pass.
+- [ ] Design-partner outreach + Show HN launch, per `docs/roadmap/90-DAY-ROADMAP.md` — this is on you, not something to automate; the docs/positioning work above is what makes that launch defensible against a technical audience reading the source.
 
 ## P4 — Growth and ecosystem positioning (after P0–P3)
 

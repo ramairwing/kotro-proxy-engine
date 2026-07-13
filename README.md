@@ -11,7 +11,20 @@
 
 **The open-source, single-binary local AI proxy** — intercept streaming LLM traffic from OpenAI and Anthropic SDKs, cut token waste, and keep secrets off the wire.
 
-Kotro fills the gap between local agent runtimes (Cursor, Claude Code, custom SDK clients) and cloud providers. It is designed as the premier self-hosted alternative to hosted gateways like TokenShift: one binary, no SaaS dependency, full control over cache, redaction, and context compression.
+Kotro fills the gap between local agent runtimes (Cursor, Claude Code, custom SDK clients) and cloud providers: one binary, no SaaS dependency, your code and secrets never pass through a third party's servers on the way to the LLM provider.
+
+## Is Kotro the right tool for you?
+
+Kotro is deliberately narrow: a single-binary, zero-dependency proxy for one developer's coding-agent traffic. It is not trying to be a team-wide LLM gateway — for that, the tools below are more mature and better fits.
+
+| Tool | Deployment | Best fit |
+|---|---|---|
+| **Kotro** | Self-hosted, single binary, zero external services (no Redis, no vector DB, no Postgres) | One developer's machine — your IDE/agent traffic never leaves your machine except to the LLM provider itself. No third party ever sees your prompts. |
+| **[LiteLLM](https://github.com/BerriAI/litellm)** | Self-hosted Python proxy | A team or org routing to 100+ providers behind one OpenAI-compatible API, with a large ecosystem and community behind it. |
+| **[Portkey](https://github.com/Portkey-AI/gateway)** | Self-hosted (Apache 2.0) or managed cloud | A team that needs production guardrails (PII/jailbreak/prompt-injection detection) and real embedding-based semantic caching out of the box, at the cost of a heavier deployment. |
+| **TokenShift** and similar hosted gateways | Managed SaaS | Teams that want zero infrastructure to run themselves and are comfortable with a third-party operator seeing 100% of their traffic in exchange for that convenience. |
+
+If you're evaluating infrastructure that will see your API keys and your code, that "no third party ever sees your traffic" property is the one thing here that's structural, not a feature checkbox — it's true of Kotro by construction (there's nothing else in the request path) and isn't something a hosted gateway can offer without changing its own business model.
 
 ## The Benchmark Proof (99.3% Upstream Token Reduction)
 

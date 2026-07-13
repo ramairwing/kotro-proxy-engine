@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose something Kotro doesn't do yet.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check [`docs/roadmap/next-steps.md`](../../docs/roadmap/next-steps.md) — if this is already planned, a 👍 on the relevant item (or a comment with your use case) is more useful than a duplicate request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation you hit, not just the feature you want — the "why" often changes what the right implementation is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach (optional)
+      description: If you have a specific implementation in mind, sketch it here. Not required.
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Which engine would this affect?
+      description: New features go in Rust (`rust/kotro-proxy/`) going forward — see CONTRIBUTING.md.
+      options:
+        - Rust
+        - Go
+        - Both / not sure
+        - N/A (docs, tooling, distribution, etc.)
+    validations:
+      required: true

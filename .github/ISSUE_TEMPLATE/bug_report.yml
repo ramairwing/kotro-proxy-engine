@@ -1,0 +1,67 @@
+name: Bug report
+description: Something isn't working the way the docs say it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Kotro is early-stage and a good repro is often more useful than a long description — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Which engine?
+      description: Rust (`rust/kotro-proxy/`) is the primary target; Go (`internal/`) is the Phase 1 reference implementation. See docs/roadmap/next-steps.md.
+      options:
+        - Rust
+        - Go
+        - Not sure / both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `kotro-proxy --version` (or the release tag / commit SHA if built from source).
+      placeholder: v0.3.0
+    validations:
+      required: true
+
+  - type: input
+    id: install-channel
+    attributes:
+      label: Install channel
+      placeholder: "npm / Homebrew / Docker / curl installer / VS Code extension / built from source"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS / architecture
+      placeholder: "macOS 15 arm64 / Ubuntu 22.04 x86_64 / ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant KOTRO_* environment variables / config
+      description: Redact anything sensitive. Default values are fine to omit.
+      render: shell
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: What request(s) did you send, and what did you expect vs. see? A minimal `curl` reproduction is ideal if the bug is in request handling.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Proxy stdout/stderr around the failure. Redact API keys — even though redaction is meant to catch these, double-check before pasting.
+      render: shell
