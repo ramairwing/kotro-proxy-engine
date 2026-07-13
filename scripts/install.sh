@@ -2,11 +2,11 @@
 set -e
 
 # Kotro Proxy Installation Script
-# Detects OS/arch, downloads the latest GitHub release binary, and installs it.
+# Downloads the latest release binary from GitHub and installs it.
 #
 # Install location (in priority order):
 #   1. ~/.local/bin   — no sudo required, works with `curl | bash`
-#   2. /usr/local/bin — falls back to sudo if ~/.local/bin is not in PATH
+#   2. /usr/local/bin — falls back here with sudo if ~/.local/bin unavailable
 
 GITHUB_REPO="kotro-labs/kotro-proxy-engine"
 
@@ -23,16 +23,19 @@ esac
 # Detect Architecture
 ARCH="$(uname -m)"
 case "${ARCH}" in
-    x86_64)     ARCH_TARGET="x86_64";;
+    x86_64)        ARCH_TARGET="x86_64";;
     arm64|aarch64) ARCH_TARGET="aarch64";;
-    *)          echo "Unsupported architecture: ${ARCH}" && exit 1;;
+    *)             echo "Unsupported architecture: ${ARCH}" && exit 1;;
 esac
 
 TARGET="${ARCH_TARGET}-${OS_TARGET}"
 ARTIFACT_NAME="kotro-proxy-${TARGET}"
 
+# Use GitHub's releases/latest/download/ redirect — no JSON parsing needed
+DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/releases/latest/download/${ARTIFACT_NAME}.tar.gz"
+
 # Choose install directory — prefer ~/.local/bin (no sudo needed)
-if [ -d "$HOME/.local/bin" ] || mkdir -p "$HOME/.local/bin" 2>/dev/null; then
+if mkdir -p "$HOME/.local/bin" 2>/dev/null; then
     BIN_DIR="$HOME/.local/bin"
     USE_SUDO=0
 else
@@ -40,54 +43,58 @@ else
     USE_SUDO=1
 fi
 
-# Fetch latest release data
-echo "Fetching latest release information..."
-LATEST_RELEASE_URL="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
-DOWNLOAD_URL=$(curl -sL "${LATEST_RELEASE_URL}" | grep "browser_download_url.*${ARTIFACT_NAME}.tar.gz" | cut -d : -f 2,3 | tr -d \" | xargs)
-
-if [ -z "$DOWNLOAD_URL" ]; then
-    echo "Could not find a release for ${TARGET}."
-    echo "Please compile from source: cargo install --path rust/kotro-proxy"
-    exit 1
-fi
-
 # Download and extract
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 cd "${TMP_DIR}"
 
-echo "Downloading ${ARTIFACT_NAME}..."
-curl -sL "$DOWNLOAD_URL" -o "${ARTIFACT_NAME}.tar.gz"
+echo "Downloading ${ARTIFACT_NAME} from ${DOWNLOAD_URL}..."
+if ! curl -fSL --progress-bar "$DOWNLOAD_URL" -o "${ARTIFACT_NAME}.tar.gz"; then
+    echo ""
+    echo "Download failed. Check your network or visit:"
+    echo "  https://github.com/${GITHUB_REPO}/releases/latest"
+    exit 1
+fi
 
 echo "Extracting..."
 tar -xzf "${ARTIFACT_NAME}.tar.gz"
 
+# Find the binary (may be named kotro-proxy-<target> or kotro-proxy)
+BINARY=$(find . -maxdepth 1 -type f -name "kotro-proxy*" ! -name "*.tar.gz" | head -1)
+if [ -z "$BINARY" ]; then
+    echo "Could not find kotro-proxy binary in tarball. Contents:"
+    ls -la
+    exit 1
+fi
+
 echo "Installing to ${BIN_DIR}..."
 if [ "$USE_SUDO" -eq 1 ]; then
-    sudo mv "${ARTIFACT_NAME}" "${BIN_DIR}/kotro-proxy"
+    sudo mv "$BINARY" "${BIN_DIR}/kotro-proxy"
     sudo chmod +x "${BIN_DIR}/kotro-proxy"
 else
-    mv "${ARTIFACT_NAME}" "${BIN_DIR}/kotro-proxy"
+    mv "$BINARY" "${BIN_DIR}/kotro-proxy"
     chmod +x "${BIN_DIR}/kotro-proxy"
 fi
 
 echo ""
 echo "========================================="
-echo "✅ Kotro Proxy Engine installed successfully!"
+echo "✅ Kotro Proxy Engine installed!"
 echo ""
 echo "Binary: ${BIN_DIR}/kotro-proxy"
 echo ""
 
-# PATH hint if ~/.local/bin isn't already in PATH
+# PATH hint if ~/.local/bin isn't already on PATH
 if [ "$USE_SUDO" -eq 0 ] && ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
-    echo "Add to your shell profile to use 'kotro-proxy' from anywhere:"
-    echo '  echo '"'"'export PATH="$HOME/.local/bin:$PATH"'"'"' >> ~/.zshrc'
-    echo "  source ~/.zshrc"
+    echo "Add to your shell to use 'kotro-proxy' from anywhere:"
+    SHELL_RC="$HOME/.zshrc"
+    [ -n "$BASH_VERSION" ] && SHELL_RC="$HOME/.bashrc"
+    echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ${SHELL_RC}"
+    echo "  source ${SHELL_RC}"
     echo ""
 fi
 
-echo "To start the proxy:"
+echo "Start the proxy:"
 echo "  kotro-proxy"
 echo ""
-echo "Then view your savings dashboard at http://localhost:9090/dashboard"
+echo "Dashboard: http://localhost:9090/dashboard"
 echo "========================================="
