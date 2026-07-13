@@ -4,12 +4,12 @@
   <img src="media/icon.png" alt="Kotro" width="72" height="72" />
 </p>
 
-npm distribution for the [Kotro Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local AI reverse proxy with streaming semantic cache, PII redaction, and context compression for OpenAI and Anthropic SDKs.
+npm distribution for the [Kotro Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local AI reverse proxy with a streaming prompt-state cache, PII redaction, and context compression for OpenAI and Anthropic SDKs.
 
 ## Features
 
 - **Zero-config startup** — precompiled binary with no dependencies
-- **Semantic SSE cache** — faster repeat prompts; `X-Kotro-Cache: HIT` on cache hits
+- **Prompt-state SSE cache** — exact-match replay on repeat prompts; `X-Kotro-Cache: HIT` on cache hits
 - **Enterprise failover** — dynamic routing on 429/503 upstream errors
 - **Operator dashboard** — local UI for observability (`http://127.0.0.1:9090/dashboard`)
 - **Isolated telemetry** — `/metrics` binds to loopback by default, separate from LLM traffic
@@ -54,7 +54,7 @@ Operator   →  127.0.0.1:9090/dashboard  (telemetry — loopback only by defaul
 |----------|---------|---------|
 | `KOTRO_LISTEN_ADDR` | `:8080` | Proxy bind address |
 | `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
-| `KOTRO_ENABLE_CACHE` | `true` | Semantic SSE cache |
+| `KOTRO_ENABLE_CACHE` | `true` | Prompt-state SSE cache |
 | `KOTRO_ENABLE_REDACTION` | `true` | PII guardrail |
 | `KOTRO_ENABLE_COMPRESSION` | `true` | Context block dedup |
 | `KOTRO_TRUST_UPSTREAM_GATEWAY` | `false` | Honor `X-Tenant-ID` only from trusted proxy CIDRs |

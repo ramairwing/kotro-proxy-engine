@@ -7,14 +7,14 @@
   <img src="https://raw.githubusercontent.com/kotro-labs/kotro-proxy-engine/main/distributions/vscode-extension/media/icon.png" alt="Kotro" width="96" height="96" />
 </p>
 
-Transparent **IDE sidecar** for the [Kotro Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local LLM gateway with streaming semantic cache, PII redaction, and context compression for **OpenAI** and **Anthropic** APIs.
+Transparent **IDE sidecar** for the [Kotro Proxy Engine](https://github.com/kotro-labs/kotro-proxy-engine) — a local LLM gateway with a streaming prompt-state cache, PII redaction, and context compression for **OpenAI** and **Anthropic** APIs.
 
 Works in **VS Code**, **Cursor**, and other VS Code–compatible editors.
 
 ## Features
 
 - **Zero-config sidecar** — spawns the native proxy binary on startup
-- **Semantic SSE cache** — faster repeat prompts; `X-Kotro-Cache: HIT` on cache hits
+- **Prompt-state SSE cache** — exact-match replay on repeat prompts; `X-Kotro-Cache: HIT` on cache hits
 - **Status bar** — live cache result and compressor bytes saved (polls every 5s)
 - **Operator dashboard** — open from the status bar (`http://127.0.0.1:9090/dashboard`)
 - **Isolated telemetry** — `/metrics` and `/dashboard` bind to loopback by default, separate from LLM traffic

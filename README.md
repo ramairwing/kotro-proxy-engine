@@ -13,22 +13,24 @@
 
 Kotro fills the gap between local agent runtimes (Cursor, Claude Code, custom SDK clients) and cloud providers. It is designed as the premier self-hosted alternative to hosted gateways like TokenShift: one binary, no SaaS dependency, full control over cache, redaction, and context compression.
 
-## The Benchmark Proof (99.3% Cost Reduction)
+## The Benchmark Proof (99.3% Upstream Token Reduction)
 
-By coordinating local semantic caching with upstream prefix caching (like DeepSeek V4 and Qwen), Kotro radically reduces inference costs for heavy agent loops. 
+By preserving request-shape stability for upstream prefix caching (DeepSeek V4, Qwen, and similar) and layering a local prompt-state cache on top for exact repeats, Kotro reduces inference costs for heavy agent loops.
 
-In a standard 3-turn codebase benchmark:
+In a standard 3-turn codebase benchmark (full data in [`benchmarks/eval-suite/RESULTS.md`](benchmarks/eval-suite/RESULTS.md)):
 - **Turn 1**: 2042 tokens sent.
-- **Turn 2**: Local Proxy Miss → DeepSeek Server Hit (**1920 tokens cached upstream**). *Only 141 tokens billed.*
-- **Turn 3**: Local Proxy Miss → DeepSeek Server Hit (**1920 tokens cached upstream**). *Only 159 tokens billed.*
+- **Turn 2**: Local proxy cache miss (new turn content) → forwarded upstream → DeepSeek's own prefix cache hit (**1920 tokens cached server-side**). *Only 141 tokens billed.*
+- **Turn 3**: Local proxy cache miss → DeepSeek prefix cache hit again. *Only 159 tokens billed.*
 
-**Total Upstream Billed Tokens: ~99.3% Reduction.**
+**Total upstream billed tokens: ~99.3% reduction in this benchmark.**
+
+**Read this number precisely:** in every recorded turn above, Kotro's own local cache *missed* — each turn had new content, so there was nothing to replay locally. The reduction shown here is upstream provider prefix caching doing the work; Kotro's contribution in this specific benchmark is keeping the request shape stable so that upstream caching can fire cleanly, not a local cache hit. Kotro's local cache adds a second, independent savings layer on genuinely repeated prompts (retries, shared fixtures, parallel agent runs hitting the same turn) with zero upstream round-trip — that scenario isn't yet represented in the published eval suite, and we're adding a repeated-prompt fixture so the local-cache contribution can be measured and reported on its own.
 
 ## What it does
 
 | Feature | Description |
 |--------|-------------|
-| **Streaming semantic cache** | Captures complete SSE streams on miss; replays on identical prompt state (system + latest user + model). |
+| **Streaming prompt-state cache** | Captures complete SSE streams on miss; replays on exact-match prompt state (system + latest user + model). Embedding-based fuzzy/semantic matching is in active development (`internal/cache` / `rust/kotro-proxy/src/cache/vector.rs`) and not yet enabled by default — see [`docs/roadmap/next-steps.md`](docs/roadmap/next-steps.md). |
 | **Privacy guardrail** | Redacts secrets before upstream; restores placeholders in streaming responses. |
 | **Context compressor** | Strips unchanged MCP schemas / directory trees across turns. |
 | **Universal provider support** | OpenAI-compatible APIs (DeepSeek, Groq, Ollama, etc.) and Anthropic `POST /v1/messages`. |
@@ -55,7 +57,7 @@ Registry publish runs automatically on `v*` tags when `NPM_TOKEN` and `VSCE_PAT`
 1. In Cursor, open **Settings → Models**.
 2. Set the `OpenAI Base URL` to `http://localhost:3000/v1`.
 3. Set your OpenAI/Anthropic API Key.
-4. Enjoy semantic caching and AST pruning out of the box!
+4. Enjoy prompt-state caching and AST pruning out of the box!
 
 ### Aider with Local Ollama (Universal Translation)
 Kotro automatically translates protocols. You can use Anthropic-native tools with local OpenAI-compatible models!
@@ -105,7 +107,7 @@ Local dashboard: [http://127.0.0.1:9090/dashboard](http://127.0.0.1:9090/dashboa
 |----------|---------|---------|
 | `KOTRO_LISTEN_ADDR` | `:8080` | Proxy bind address |
 | `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
-| `KOTRO_ENABLE_CACHE` | `true` | Semantic SSE cache |
+| `KOTRO_ENABLE_CACHE` | `true` | Prompt-state SSE cache |
 | `KOTRO_ENABLE_REDACTION` | `true` | Local PII guardrail |
 | `KOTRO_ENABLE_COMPRESSION` | `true` | Context deduplication |
 | `KOTRO_CACHE_HIT_DELAY_MS` | `2` | Replay pacing on cache hits |
@@ -215,7 +217,7 @@ IDE / SDK  →  kotro-proxy (:8080)
 ```
 cmd/proxy/           Main proxy binary
 cmd/mockupstream/    Offline OpenAI + Anthropic SSE server
-internal/cache/      bbolt semantic cache
+internal/cache/      bbolt prompt-state cache
 internal/compressor/ Context block dedup
 internal/guardrail/  Secret redaction
 internal/models/     OpenAI + Anthropic request types
@@ -226,4 +228,4 @@ scripts/bench/       k6 / vegeta load tests
 
 ## License
 
-Open source — contributions welcome.
+[MIT](LICENSE) — contributions welcome.
