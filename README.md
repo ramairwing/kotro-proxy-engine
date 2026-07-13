@@ -30,7 +30,8 @@ In a standard 3-turn codebase benchmark (full data in [`benchmarks/eval-suite/RE
 
 | Feature | Description |
 |--------|-------------|
-| **Streaming prompt-state cache** | Captures complete SSE streams on miss; replays on exact-match prompt state (system + latest user + model). Embedding-based fuzzy/semantic matching is in active development (`internal/cache` / `rust/kotro-proxy/src/cache/vector.rs`) and not yet enabled by default — see [`docs/roadmap/next-steps.md`](docs/roadmap/next-steps.md). |
+| **Streaming prompt-state cache** | Captures complete SSE streams on miss; replays on exact-match prompt state (system + latest user + model). |
+| **Local semantic cache (Rust engine)** | Layers real embedding-based fuzzy matching on top of the exact-match cache — [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) runs on-device via `candle`, so paraphrased prompts can hit the cache too, with zero calls to any embedding API. Enabled by default (`KOTRO_ENABLE_VECTOR_CACHE=true`); degrades gracefully to exact-match-only if the model can't load (e.g. fully offline before the ~90MB weights are cached locally on first run). Not yet present in the Go reference implementation — see [`docs/roadmap/next-steps.md`](docs/roadmap/next-steps.md). |
 | **Privacy guardrail** | Redacts secrets before upstream; restores placeholders in streaming responses. |
 | **Context compressor** | Strips unchanged MCP schemas / directory trees across turns. |
 | **Universal provider support** | OpenAI-compatible APIs (DeepSeek, Groq, Ollama, etc.) and Anthropic `POST /v1/messages`. |
@@ -108,6 +109,7 @@ Local dashboard: [http://127.0.0.1:9090/dashboard](http://127.0.0.1:9090/dashboa
 | `KOTRO_LISTEN_ADDR` | `:8080` | Proxy bind address |
 | `KOTRO_UPSTREAM_URL` | `http://127.0.0.1:9000` | Provider base URL |
 | `KOTRO_ENABLE_CACHE` | `true` | Prompt-state SSE cache |
+| `KOTRO_ENABLE_VECTOR_CACHE` | `true` | Local semantic (embedding) cache layer — Rust engine only |
 | `KOTRO_ENABLE_REDACTION` | `true` | Local PII guardrail |
 | `KOTRO_ENABLE_COMPRESSION` | `true` | Context deduplication |
 | `KOTRO_CACHE_HIT_DELAY_MS` | `2` | Replay pacing on cache hits |

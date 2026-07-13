@@ -21,10 +21,10 @@ Revised framing (see conversation log): "match Go's test count" is a proxy metri
 
 ## P2 — Make the semantic cache real
 
-- [ ] Wire `candle-core` / `candle-nn` / `candle-transformers` / `hf-hub` (already in `rust/kotro-proxy/Cargo.toml`, currently unused) into `SemanticEncoder::embed()` in `cache/vector.rs`, replacing the byte-sum stub with real `all-MiniLM-L6-v2` inference.
-- [ ] Add lazy-download-with-offline-fallback: fetch weights via `hf-hub` on first run; if unavailable, fall back to exact-match cache rather than failing startup — preserves the zero-config, single-binary promise.
-- [ ] Replace the current stub test (`test_vector_index_similarity`, which only checks identical strings) with real accuracy tests: paraphrase pairs that should hit, unrelated prompts that shouldn't, at a tuned cosine threshold.
-- [ ] Benchmark embedding latency overhead and publish it next to cache-hit-rate numbers — must stay low enough that it doesn't erode the savings it creates.
+- [x] Wire `candle-core` / `candle-nn` / `candle-transformers` / `hf-hub` into `SemanticEncoder::embed()` in `cache/vector.rs`, replacing the byte-sum stub with real `all-MiniLM-L6-v2` inference. Done in `69d0035`; compiles and runs against the pinned `0.11.0` candle versions (verified locally — `cargo build` clean).
+- [x] Add lazy-download-with-offline-fallback: fetch weights via `hf-hub` on first run; if unavailable, fall back to exact-match cache rather than failing startup. Implemented in `SemanticEncoder::new()` — a load failure logs a warning and degrades to a disabled encoder rather than panicking; confirmed the happy path works (model downloads, loads, and runs) via local `cargo test`.
+- [x] Replace the current stub test with real accuracy tests: paraphrase pairs that should hit, unrelated prompts that shouldn't, at a tuned cosine threshold. Done — `semantic_similarity_reflects_paraphrase_vs_unrelated` and `vector_index_lookup_uses_encoder_output` both pass locally (`cb49700` recalibrated one threshold after the first real run showed mean-pooled MiniLM's actual anisotropy baseline; see commit message for the reasoning). All 3 tests in `cache::vector` pass as of the latest local run.
+- [ ] Benchmark embedding latency overhead and publish it next to cache-hit-rate numbers — must stay low enough that it doesn't erode the savings it creates. **Still open** — not yet measured.
 
 ## P3 — Trust and launch readiness
 
