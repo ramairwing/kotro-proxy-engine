@@ -46,6 +46,13 @@ pub struct AppState {
     pub local_model_pattern: Option<regex::Regex>,
     pub local_upstream_url: Option<String>,
     pub moe_default_model: String,
+    /// Model name for the `Micro` complexity tier (cheap/fast API model).
+    pub cheap_model: Option<String>,
+    /// Upstream base URL for cheap model requests. `None` = same as `upstream_url`.
+    pub cheap_model_url: Option<String>,
+    /// Number of identical tool calls before the per-conversation loop CB fires.
+    /// 0 = disabled.
+    pub tool_loop_threshold: u32,
     pub vector_encoder: Arc<crate::cache::vector::SemanticEncoder>,
     pub vector_index: Arc<crate::cache::vector::VectorIndex>,
     pub circuit_breaker: moka::sync::Cache<String, u32>,
@@ -95,6 +102,9 @@ impl AppState {
             local_model_pattern: cfg.local_model_pattern.as_ref().and_then(|p| regex::Regex::new(p).ok()),
             local_upstream_url: cfg.local_upstream_url.clone().map(|u| u.trim_end_matches('/').to_string()),
             moe_default_model: cfg.moe_default_model.clone(),
+            cheap_model: cfg.cheap_model.clone(),
+            cheap_model_url: cfg.cheap_model_url.clone().map(|u| u.trim_end_matches('/').to_string()),
+            tool_loop_threshold: cfg.tool_loop_threshold,
             vector_encoder: Arc::new(crate::cache::vector::SemanticEncoder::new(cfg.enable_vector_cache)),
             vector_index: Arc::new(crate::cache::vector::VectorIndex::new()),
             circuit_breaker: moka::sync::Cache::builder()

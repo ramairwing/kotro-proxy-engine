@@ -23,12 +23,12 @@ use crate::budget::BudgetTracker;
 use crate::cache::generate_cache_key;
 use crate::compressor::Scope;
 use crate::guardrail::{InjectionFinding, RedactionMap};
+use crate::router::classifier::{classify_complexity, PromptComplexity};
 // redact_chat_request / redact_messages_request are defined in crate::guardrail but
 // not yet called here — redaction is currently done via apply_unified_middleware's
 // passthrough stub. Import only what is used.
 // TODO: wire per-format redaction once redact_unified_request is implemented.
 use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest, unified::UnifiedRequest};
-use crate::router::classifier;
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
 use crate::proxy::replay::create_cached_replay_stream;
 use crate::router::AppState;
@@ -368,9 +368,29 @@ pub async fn handle_chat_completions(
     let scope = state.scope.from_request(&headers, peer.ip());
     let (_, latest_user) = req.extract_prompt_state();
 
-    if classifier::is_trivial_prompt(&latest_user) && state.local_upstream_url.is_some() {
-        tracing::info!("MoE triggered: routed trivial prompt to {}", state.moe_default_model);
-        req.model = state.moe_default_model.clone();
+    // ── Complexity-based model routing ───────────────────────────────────────
+    // Route cheap/trivial requests to cheaper models before building unified_req
+    // so the final model name propagates through the entire pipeline.
+    {
+        let has_tool_calls = req.messages.iter().any(|m| m.tool_calls.is_some());
+        match classify_complexity(&latest_user, req.messages.len(), has_tool_calls) {
+            PromptComplexity::Nano => {
+                if state.local_upstream_url.is_some() {
+                    tracing::info!(model = %state.moe_default_model, "model router: Nano → local model");
+                    req.model = state.moe_default_model.clone();
+                }
+            }
+            PromptComplexity::Micro => {
+                if let Some(ref cheap) = state.cheap_model {
+                    tracing::info!(model = %cheap, "model router: Micro → cheap model");
+                    req.model = cheap.clone();
+                }
+            }
+            PromptComplexity::Complex => {
+                tracing::info!(tier = "complex", model = %req.model, "model router: Complex tier — keeping configured model");
+            }
+            PromptComplexity::Standard => {}
+        }
     }
 
     let unified_req: UnifiedRequest = req.clone().try_into().unwrap_or_else(|_| {
@@ -406,6 +426,38 @@ pub async fn handle_chat_completions(
                 &format!(
                     "Pattern '{}' detected in {} message. Request blocked by Kotro guardrail.",
                     finding.pattern_name, finding.role
+                ),
+            );
+        }
+    }
+
+    // ── Agent tool-call loop detection ───────────────────────────────────────
+    // Catches the case where an agent calls the same tool with identical args
+    // across multiple turns. The request-level circuit breaker (cache-key based)
+    // doesn't catch this because the surrounding context keeps changing.
+    if let Some(ref lf) = crate::guardrail::detect_tool_call_loops(
+        &unified_req.messages, state.tool_loop_threshold,
+    ) {
+        tracing::warn!(
+            function = %lf.function_name,
+            count = lf.call_count,
+            threshold = state.tool_loop_threshold,
+            "kotro guardrail: tool-call loop detected"
+        );
+        if unified_req.stream {
+            let msg = format!(
+                "data: {{\"choices\": [{{\"delta\": {{\"content\": \"\\n\\n🔁 [KOTRO LOOP DETECTED]: Tool \\\"{}\\\" was called {} times with identical arguments. Breaking agent loop.\"}}}}, {{\"finish_reason\": \"stop\"}}]}}\n\ndata: [DONE]\n\n",
+                lf.function_name, lf.call_count
+            );
+            let stream = futures_util::stream::once(async move { Ok::<_, io::Error>(Bytes::from(msg)) });
+            return sse_stream_response(stream, false);
+        } else {
+            return problem_response(
+                StatusCode::TOO_MANY_REQUESTS,
+                "Agent Loop Detected",
+                &format!(
+                    "Tool '{}' was called {} times with identical arguments. Breaking loop.",
+                    lf.function_name, lf.call_count
                 ),
             );
         }
@@ -575,7 +627,7 @@ pub async fn handle_messages(
     let scope = state.scope.from_request(&headers, peer.ip());
     let (_, latest_user) = req.extract_prompt_state();
 
-    let unified_req: UnifiedRequest = req.clone().try_into().unwrap_or_else(|_| {
+    let mut unified_req: UnifiedRequest = req.clone().try_into().unwrap_or_else(|_| {
         UnifiedRequest {
             model: req.model.clone(),
             system_prompt: "".into(),
@@ -584,6 +636,29 @@ pub async fn handle_messages(
             max_tokens: Some(req.max_tokens),
         }
     });
+
+    // ── Complexity-based model routing ────────────────────────────────────────
+    {
+        let has_tool_calls = unified_req.messages.iter().any(|m| m.tool_calls.is_some());
+        match classify_complexity(&latest_user, unified_req.messages.len(), has_tool_calls) {
+            PromptComplexity::Nano => {
+                if state.local_upstream_url.is_some() {
+                    tracing::info!(model = %state.moe_default_model, "model router: Nano → local model");
+                    unified_req.model = state.moe_default_model.clone();
+                }
+            }
+            PromptComplexity::Micro => {
+                if let Some(ref cheap) = state.cheap_model {
+                    tracing::info!(model = %cheap, "model router: Micro → cheap model");
+                    unified_req.model = cheap.clone();
+                }
+            }
+            PromptComplexity::Complex => {
+                tracing::info!(tier = "complex", model = %unified_req.model, "model router: Complex tier — keeping configured model");
+            }
+            PromptComplexity::Standard => {}
+        }
+    }
 
     // ── Injection scan ────────────────────────────────────────────────────────
     let injection_finding: Option<InjectionFinding> = if state.enable_injection_scan {
@@ -605,6 +680,35 @@ pub async fn handle_messages(
                 &format!(
                     "Pattern '{}' detected in {} message. Request blocked by Kotro guardrail.",
                     finding.pattern_name, finding.role
+                ),
+            );
+        }
+    }
+
+    // ── Agent tool-call loop detection ────────────────────────────────────────
+    if let Some(ref lf) = crate::guardrail::detect_tool_call_loops(
+        &unified_req.messages, state.tool_loop_threshold,
+    ) {
+        tracing::warn!(
+            function = %lf.function_name,
+            count = lf.call_count,
+            threshold = state.tool_loop_threshold,
+            "kotro guardrail: tool-call loop detected"
+        );
+        if unified_req.stream {
+            let msg = format!(
+                "event: content_block_delta\ndata: {{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{{\"type\":\"text_delta\",\"text\":\"\\n\\n🔁 [KOTRO LOOP DETECTED]: Tool \\\"{}\\\" was called {} times with identical arguments. Breaking agent loop.\"}}}}\n\n",
+                lf.function_name, lf.call_count
+            );
+            let stream = futures_util::stream::once(async move { Ok::<_, io::Error>(Bytes::from(msg)) });
+            return sse_stream_response(stream, false);
+        } else {
+            return problem_response(
+                StatusCode::TOO_MANY_REQUESTS,
+                "Agent Loop Detected",
+                &format!(
+                    "Tool '{}' was called {} times with identical arguments. Breaking loop.",
+                    lf.function_name, lf.call_count
                 ),
             );
         }
@@ -969,10 +1073,17 @@ fn copy_response_headers(src: &reqwest::header::HeaderMap, dst: &mut HeaderMap) 
 }
 
 fn get_upstream_url<'a>(state: &'a AppState, model: &str) -> &'a str {
+    // Local / MoE model → local upstream URL
     let is_moe = model == state.moe_default_model;
     if is_moe || state.local_model_pattern.as_ref().is_some_and(|p| p.is_match(model)) {
         if let Some(local_url) = &state.local_upstream_url {
             return local_url.as_str();
+        }
+    }
+    // Cheap (Micro tier) model → dedicated cheap-model upstream URL (if configured)
+    if let (Some(cheap_model), Some(cheap_url)) = (&state.cheap_model, &state.cheap_model_url) {
+        if model == cheap_model.as_str() {
+            return cheap_url.as_str();
         }
     }
     &state.upstream_url

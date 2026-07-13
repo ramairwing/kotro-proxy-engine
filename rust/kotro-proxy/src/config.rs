@@ -30,6 +30,16 @@ pub struct Config {
     pub local_model_pattern: Option<String>,
     pub local_upstream_url: Option<String>,
     pub moe_default_model: String,
+    /// Model name for the `Micro` complexity tier (cheap API model).
+    /// Example: `claude-haiku-4-5-20251001` or `gpt-4o-mini`.
+    /// When unset, Micro-tier requests use the default configured model.
+    pub cheap_model: Option<String>,
+    /// Optional upstream base URL for the cheap model (e.g. a different provider).
+    /// When unset, cheap-model requests are forwarded to `upstream_url`.
+    pub cheap_model_url: Option<String>,
+    /// Number of identical `(tool_name, args)` calls in one conversation before
+    /// the agent loop circuit breaker fires. Default: 3. Set to 0 to disable.
+    pub tool_loop_threshold: u32,
     /// Scan tool-call results and user messages for prompt injection patterns.
     /// Default: `true`. Disable with `KOTRO_ENABLE_INJECTION_SCAN=false`.
     pub enable_injection_scan: bool,
@@ -73,6 +83,9 @@ impl Default for Config {
             local_model_pattern: None,
             local_upstream_url: None,
             moe_default_model: "llama3".into(),
+            cheap_model: None,
+            cheap_model_url: None,
+            tool_loop_threshold: 3,
             enable_injection_scan: true,
             injection_block_on_detection: false,
             session_token_budget: 0,
@@ -160,6 +173,9 @@ impl Config {
             local_model_pattern: env_opt("KOTRO_LOCAL_MODEL_PATTERN"),
             local_upstream_url: env_opt("KOTRO_LOCAL_UPSTREAM_URL"),
             moe_default_model: env_or("KOTRO_MOE_DEFAULT_MODEL", defaults.moe_default_model),
+            cheap_model: env_opt("KOTRO_CHEAP_MODEL"),
+            cheap_model_url: env_opt("KOTRO_CHEAP_MODEL_URL"),
+            tool_loop_threshold: env_u64("KOTRO_TOOL_LOOP_THRESHOLD", defaults.tool_loop_threshold as u64) as u32,
             enable_injection_scan: env_bool("KOTRO_ENABLE_INJECTION_SCAN", defaults.enable_injection_scan),
             injection_block_on_detection: env_bool("KOTRO_INJECTION_BLOCK", defaults.injection_block_on_detection),
             session_token_budget: env_u64("KOTRO_SESSION_TOKEN_BUDGET", defaults.session_token_budget),
