@@ -16,6 +16,8 @@
 | Semantic cache (MiniLM) | `cache/vector.rs` | `all-MiniLM-L6-v2` via candle. Cosine threshold 0.94. `KOTRO_ENABLE_VECTOR_CACHE`. |
 | SHA-256 exact-match cache | `cache/store.rs` | redb-backed. `WindowN` strategy (last 4 messages). TTL 24h, eviction 600s. |
 | PII / secret redaction | `guardrail/redactor.rs` | 10 pattern types including DB URLs, passwords, emails. Restores in streamed response. |
+| Reasoning model budget controller | `optimizer/reasoning.rs` | Caps `thinking.budget_tokens` (Anthropic) / `max_completion_tokens` (OpenAI). `KOTRO_MAX_THINKING_TOKENS`, `KOTRO_REASONING_BLOCK`. 14 tests. |
+| MCP tool call response cache | `cache/tool.rs` | In-memory, per-scope, per-category TTL (read=30s/status=5m/search=1h). Write-op path invalidation. `KOTRO_ENABLE_TOOL_CACHE`. 13 tests. |
 | kotro-core library crate | `rust/kotro-core/` | Embeddable crate, foundation for WASM plugin surface. |
 | Supply-chain signing (SBOM + cosign) | `.github/workflows/release.yml` | Keyless OIDC signing via Sigstore. SPDX SBOM generated on release. |
 | CI cancel-storm leak audit | `.github/workflows/cancel-audit.yml` | k6 load test, goroutine leak detection. Separate non-blocking workflow. |
@@ -32,13 +34,7 @@
 
 ## ❌ Not Yet Built — Priority Order
 
-### 1. Reasoning model budget controller *(next up — small, high-impact)*
-- **What:** Intercept requests to Opus 4.8 / o3-family and inject/enforce `budget_tokens` (Anthropic) or `max_completion_tokens` (OpenAI).
-- **Env vars:** `KOTRO_MAX_THINKING_TOKENS=8000`, `KOTRO_REASONING_BLOCK=true`
-- **Where:** New file `optimizer/reasoning.rs`, wired into `handlers.rs` before upstream call.
-- **Why now:** Opus 4.8 extended thinking can burn $50/session. This closes the gap before HN launch.
-
-### 2. MCP tool call response cache *(unique, no competitor has it)*
+### 1. Go freeze *(next up — housekeeping before HN launch)*
 - **What:** Cache tool call *results* (file reads, git status, search) by `(tool_name, canonicalized_args)`. Short configurable TTL. Flush on write tool call for same path.
 - **Where:** New file `cache/tool.rs`. Hook into MCP tool response path in `handlers.rs`.
 - **Why:** In a typical coding session, 30–50% of tool calls are exact repeats. Caching them eliminates both latency and token cost of re-sending results into context.

@@ -68,6 +68,8 @@ pub struct AppState {
     /// When `true`, requests to reasoning models are rejected with HTTP 403
     /// instead of having their thinking budget capped.
     pub reasoning_block: bool,
+    /// In-memory tool call result cache (opt-in, `KOTRO_ENABLE_TOOL_CACHE=true`).
+    pub tool_cache: Arc<crate::cache::tool::ToolCache>,
 }
 
 impl AppState {
@@ -125,6 +127,15 @@ impl AppState {
             )),
             max_thinking_tokens: cfg.max_thinking_tokens,
             reasoning_block: cfg.reasoning_block,
+            tool_cache: Arc::new(crate::cache::tool::ToolCache::new(
+                cfg.enable_tool_cache,
+                crate::cache::tool::ToolCacheTtls {
+                    read: std::time::Duration::from_secs(cfg.tool_cache_read_ttl_secs),
+                    status: std::time::Duration::from_secs(cfg.tool_cache_status_ttl_secs),
+                    search: std::time::Duration::from_secs(cfg.tool_cache_search_ttl_secs),
+                    default: std::time::Duration::from_secs(60),
+                },
+            )),
         }
     }
 }

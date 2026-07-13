@@ -60,6 +60,15 @@ pub struct Config {
     /// Block requests to reasoning models entirely (HTTP 403) instead of capping
     /// their thinking budget. Default: `false`. Enable with `KOTRO_REASONING_BLOCK=true`.
     pub reasoning_block: bool,
+    /// Enable in-memory tool result cache. Default: `false` (opt-in).
+    /// Enable with `KOTRO_ENABLE_TOOL_CACHE=true`.
+    pub enable_tool_cache: bool,
+    /// TTL in seconds for filesystem read tool results. Default: 30.
+    pub tool_cache_read_ttl_secs: u64,
+    /// TTL in seconds for status/directory-listing tool results. Default: 300.
+    pub tool_cache_status_ttl_secs: u64,
+    /// TTL in seconds for search tool results. Default: 3600.
+    pub tool_cache_search_ttl_secs: u64,
 }
 
 impl Default for Config {
@@ -99,6 +108,10 @@ impl Default for Config {
             budget_block_on_exceeded: false,
             max_thinking_tokens: 0,
             reasoning_block: false,
+            enable_tool_cache: false,
+            tool_cache_read_ttl_secs: 30,
+            tool_cache_status_ttl_secs: 300,
+            tool_cache_search_ttl_secs: 3600,
         }
     }
 }
@@ -191,6 +204,10 @@ impl Config {
             budget_block_on_exceeded: env_bool("KOTRO_BUDGET_BLOCK", defaults.budget_block_on_exceeded),
             max_thinking_tokens: env_u64("KOTRO_MAX_THINKING_TOKENS", defaults.max_thinking_tokens),
             reasoning_block: env_bool("KOTRO_REASONING_BLOCK", defaults.reasoning_block),
+            enable_tool_cache: env_bool("KOTRO_ENABLE_TOOL_CACHE", defaults.enable_tool_cache),
+            tool_cache_read_ttl_secs: env_u64("KOTRO_TOOL_CACHE_READ_TTL_SECS", defaults.tool_cache_read_ttl_secs),
+            tool_cache_status_ttl_secs: env_u64("KOTRO_TOOL_CACHE_STATUS_TTL_SECS", defaults.tool_cache_status_ttl_secs),
+            tool_cache_search_ttl_secs: env_u64("KOTRO_TOOL_CACHE_SEARCH_TTL_SECS", defaults.tool_cache_search_ttl_secs),
         }
     }
 }

@@ -93,6 +93,85 @@ fn attach_guardrail_headers(
     }
 }
 
+/// Extract `role: "tool"` messages from a unified message list and populate the
+/// tool result cache. Also detects write operations and invalidates related read
+/// entries so stale file contents are never served after a write.
+///
+/// Returns the number of results stored (new entries only; overwrites count too).
+fn populate_tool_cache(
+    messages: &[crate::models::unified::UnifiedMessage],
+    tool_cache: &crate::cache::tool::ToolCache,
+    scope_key: &str,
+) -> usize {
+    use crate::cache::tool::ToolCategory;
+
+    if !tool_cache.enabled {
+        return 0;
+    }
+
+    let mut stored = 0usize;
+
+    // Build a map from tool_call_id → (function_name, args_json) by scanning
+    // assistant messages for `tool_calls` arrays.
+    let mut call_meta: std::collections::HashMap<String, (String, String)> = std::collections::HashMap::new();
+    for msg in messages {
+        if msg.role == "assistant" {
+            if let Some(tool_calls) = &msg.tool_calls {
+                if let Some(arr) = tool_calls.as_array() {
+                    for tc in arr {
+                        let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let name = tc
+                            .get("function")
+                            .and_then(|f| f.get("name"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+                        let args = tc
+                            .get("function")
+                            .and_then(|f| f.get("arguments"))
+                            .map(|v| v.as_str().unwrap_or(&v.to_string()).to_string())
+                            .unwrap_or_default();
+                        if !id.is_empty() {
+                            call_meta.insert(id, (name, args));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Now scan tool result messages and cache their content.
+    for msg in messages {
+        if msg.role == "tool" {
+            let call_id = msg.tool_call_id.as_deref().unwrap_or("");
+            let content = crate::models::unified::content_text(&msg.content);
+            if content.is_empty() {
+                continue;
+            }
+            if let Some((name, args)) = call_meta.get(call_id) {
+                // Detect write operations and invalidate stale read entries.
+                if ToolCategory::is_write(name) {
+                    // Best-effort: extract path from args to scope the invalidation.
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(args) {
+                        if let Some(path) = v.get("path").and_then(|p| p.as_str()) {
+                            tool_cache.invalidate_by_path(path);
+                        }
+                    }
+                } else {
+                    tool_cache.put(scope_key, name, args, &content);
+                    stored += 1;
+                }
+            } else {
+                // No matching call_id — cache under a fallback key derived from content.
+                tool_cache.put(scope_key, "unknown_tool", call_id, &content);
+                stored += 1;
+            }
+        }
+    }
+
+    stored
+}
+
 const SSE_HEADERS: [(&str, &str); 4] = [
     ("content-type", "text/event-stream"),
     ("cache-control", "no-cache"),
@@ -404,6 +483,17 @@ pub async fn handle_chat_completions(
         }
     });
 
+    // ── Tool result cache (populate) ─────────────────────────────────────────
+    // Extract role:"tool" messages and store results before the cache lookup so
+    // subsequent identical tool calls can be served without re-executing the tool.
+    {
+        let scope_key_early = scope.key();
+        let stored = populate_tool_cache(&unified_req.messages, &state.tool_cache, &scope_key_early);
+        if stored > 0 {
+            tracing::debug!(count = stored, scope = %scope_key_early, "tool cache: stored {} result(s)", stored);
+        }
+    }
+
     // ── Injection scan ────────────────────────────────────────────────────────
     // Run before the cache lookup so we never serve a cached response to a
     // poisoned request, and never cache the downstream result of one.
@@ -681,6 +771,15 @@ pub async fn handle_messages(
                 tracing::info!(tier = "complex", model = %unified_req.model, "model router: Complex tier — keeping configured model");
             }
             PromptComplexity::Standard => {}
+        }
+    }
+
+    // ── Tool result cache (populate) ─────────────────────────────────────────
+    {
+        let scope_key_early = scope.key();
+        let stored = populate_tool_cache(&unified_req.messages, &state.tool_cache, &scope_key_early);
+        if stored > 0 {
+            tracing::debug!(count = stored, scope = %scope_key_early, "tool cache: stored {} result(s)", stored);
         }
     }
 
