@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # required for cosign keyless (OIDC) signing -- no key material to manage/leak
 
 env:
   CARGO_TERM_COLOR: always
@@ -147,6 +148,32 @@ jobs:
 
           ls -la "$EXT_BIN"
           ls -la "$RELEASE_DIR"
+
+      - name: Generate SBOM (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: release-assets/kotro-proxy-engine-${{ steps.version.outputs.version }}.sbom.spdx.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign release artifacts (keyless, Sigstore)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keyless signing: cosign proves provenance via this workflow's own
+          # GitHub Actions OIDC token against Sigstore's public Fulcio/Rekor
+          # infrastructure. No private key to generate, store as a secret, or
+          # leak -- the tradeoff most solo-maintained projects want here.
+          # Verification instructions: README.md "Verifying releases".
+          for f in release-assets/*; do
+            echo "Signing $f"
+            cosign sign-blob --yes "$f" \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem"
+          done
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

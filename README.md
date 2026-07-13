@@ -65,6 +65,22 @@ In a standard 3-turn codebase benchmark (full data in [`benchmarks/eval-suite/RE
 
 Registry publish runs automatically on `v*` tags when `NPM_TOKEN` and `VSCE_PAT` secrets are configured. Marketplace uses [marketplace-publish.yml](.github/workflows/marketplace-publish.yml) (see [distributions/MARKETPLACE-AUTOMATION.md](distributions/MARKETPLACE-AUTOMATION.md)).
 
+### Verifying releases
+
+Every GitHub Release binary is signed keylessly via [cosign](https://github.com/sigstore/cosign) — the workflow proves it built the artifact using its own GitHub Actions identity (via Sigstore's public Fulcio/Rekor infrastructure), with no private key for anyone to manage or leak. Each release also ships an SPDX SBOM. To verify a downloaded binary before running it:
+
+```bash
+# Download the binary, its .sig, and its .pem alongside it (all in the same GitHub Release)
+cosign verify-blob \
+  --certificate kotro-proxy-x86_64-apple-darwin.tar.gz.pem \
+  --signature kotro-proxy-x86_64-apple-darwin.tar.gz.sig \
+  --certificate-identity-regexp 'https://github.com/kotro-labs/kotro-proxy-engine/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  kotro-proxy-x86_64-apple-darwin.tar.gz
+```
+
+A successful verification confirms the binary was built by this repository's release workflow and hasn't been modified since. The `curl | bash` and Homebrew/npm channels above don't currently run this check automatically — if you need that guarantee, verify the GitHub Release asset directly rather than one of the wrapped installers, or open an issue if automatic verification in those channels matters for your use case.
+
 ## Plug-and-Play Guides
 
 ### Cursor Integration (Cut API bills in half)
