@@ -568,6 +568,7 @@ pub async fn handle_chat_completions(
         None
     };
     if let Some(ref finding) = injection_finding {
+        state.metrics.record_injection_blocked();
         tracing::warn!(
             pattern = finding.pattern_name,
             role = %finding.role,
@@ -593,6 +594,7 @@ pub async fn handle_chat_completions(
     if let Some(ref lf) = crate::guardrail::detect_tool_call_loops(
         &unified_req.messages, state.tool_loop_threshold,
     ) {
+        state.metrics.record_agent_loop_stopped();
         tracing::warn!(
             function = %lf.function_name,
             count = lf.call_count,
@@ -704,6 +706,7 @@ pub async fn handle_chat_completions(
 
         // ── Budget enforcement (cache misses only) ────────────────────────────
         if state.budget.is_exceeded(&scope_key) {
+            state.metrics.record_budget_enforced();
             tracing::warn!(
                 scope = %scope_key,
                 limit = state.budget.limit_tokens,
@@ -725,6 +728,7 @@ pub async fn handle_chat_completions(
         let count = state.circuit_breaker.get(&cache_key).unwrap_or(0) + 1;
         state.circuit_breaker.insert(cache_key.clone(), count);
         if count >= 4 {
+            state.metrics.record_agent_loop_stopped();
             tracing::warn!(key = %cache_key, count = count, "circuit breaker tripped");
             if processed.stream {
                 let err_msg = "data: {\"choices\": [{\"delta\": {\"content\": \"\\n\\n🚨 [KOTRO CIRCUIT BREAKER TRIPPED]: Infinite error loop detected. Halting execution to prevent API credit drain. Please ask the human operator for guidance.\"}}]}\n\ndata: [DONE]\n\n";
@@ -869,6 +873,7 @@ pub async fn handle_messages(
         None
     };
     if let Some(ref finding) = injection_finding {
+        state.metrics.record_injection_blocked();
         tracing::warn!(
             pattern = finding.pattern_name,
             role = %finding.role,
@@ -891,6 +896,7 @@ pub async fn handle_messages(
     if let Some(ref lf) = crate::guardrail::detect_tool_call_loops(
         &unified_req.messages, state.tool_loop_threshold,
     ) {
+        state.metrics.record_agent_loop_stopped();
         tracing::warn!(
             function = %lf.function_name,
             count = lf.call_count,
@@ -1000,6 +1006,7 @@ pub async fn handle_messages(
 
         // ── Budget enforcement (cache misses only) ────────────────────────────
         if state.budget.is_exceeded(&scope_key) {
+            state.metrics.record_budget_enforced();
             tracing::warn!(
                 scope = %scope_key,
                 limit = state.budget.limit_tokens,
@@ -1021,6 +1028,7 @@ pub async fn handle_messages(
         let count = state.circuit_breaker.get(&cache_key).unwrap_or(0) + 1;
         state.circuit_breaker.insert(cache_key.clone(), count);
         if count >= 4 {
+            state.metrics.record_agent_loop_stopped();
             tracing::warn!(key = %cache_key, count = count, "circuit breaker tripped");
             if processed.stream {
                 let err_msg = "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\n🚨 [KOTRO CIRCUIT BREAKER TRIPPED]: Infinite error loop detected. Halting execution to prevent API credit drain. Please ask the human operator for guidance.\"}}\n\n";

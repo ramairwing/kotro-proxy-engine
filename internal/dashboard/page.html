@@ -378,6 +378,24 @@
         </div>
       </div>
       <div class="card glass">
+        <div class="label" style="color: var(--miss);">Injections Blocked</div>
+        <div class="value">
+          <span class="rolling-number" id="injections-blocked" data-val="0">0</span>
+        </div>
+      </div>
+      <div class="card glass">
+        <div class="label" style="color: var(--miss);">Agent Loops Stopped</div>
+        <div class="value">
+          <span class="rolling-number" id="agent-loops-stopped" data-val="0">0</span>
+        </div>
+      </div>
+      <div class="card glass">
+        <div class="label" style="color: var(--miss);">Budgets Enforced</div>
+        <div class="value">
+          <span class="rolling-number" id="budgets-enforced" data-val="0">0</span>
+        </div>
+      </div>
+      <div class="card glass">
         <div class="label">Active Scopes</div>
         <div class="value">
           <span class="rolling-number" id="scopes" data-val="0">0</span>
@@ -525,6 +543,9 @@
         
       updateCounter('bytes-saved', data.compressor_bytes_saved_total, fmtBytes);
       updateCounter('tokens-saved', data.compressor_bytes_saved_total / 4, Math.round);
+      updateCounter('injections-blocked', data.injections_blocked_total, Math.round);
+      updateCounter('agent-loops-stopped', data.agent_loops_stopped_total, Math.round);
+      updateCounter('budgets-enforced', data.budgets_enforced_total, Math.round);
       updateCounter('redactions', data.redactions_total, Math.round);
       updateCounter('scopes', data.compressor_scopes_active, Math.round);
       updateCounter('requests', data.requests_total, Math.round);

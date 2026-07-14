@@ -44,6 +44,9 @@ pub struct DashboardSnapshot {
     pub redactions_total: f64,
     pub cache_entries: f64,
     pub requests_total: f64,
+    pub injections_blocked_total: f64,
+    pub agent_loops_stopped_total: f64,
+    pub budgets_enforced_total: f64,
     pub recent_requests: Vec<RecentRequest>,
 }
 
@@ -77,6 +80,9 @@ pub struct MetricsRegistry {
     cache_key_strategy: GaugeVec,
     process_threads: Gauge,
     resident_memory_bytes: Gauge,
+    injections_blocked: Counter,
+    agent_loops_stopped: Counter,
+    budgets_enforced: Counter,
     dashboard: Arc<Mutex<DashboardState>>,
 }
 
@@ -263,6 +269,27 @@ impl MetricsRegistry {
         )
         .unwrap();
 
+        let injections_blocked = register_counter_with_registry!(
+            "kotro_injections_blocked_total",
+            "Total MCP prompt injections blocked.",
+            registry
+        )
+        .unwrap();
+
+        let agent_loops_stopped = register_counter_with_registry!(
+            "kotro_agent_loops_stopped_total",
+            "Total infinite agent tool loops stopped.",
+            registry
+        )
+        .unwrap();
+
+        let budgets_enforced = register_counter_with_registry!(
+            "kotro_budgets_enforced_total",
+            "Total times session token budget was enforced.",
+            registry
+        )
+        .unwrap();
+
         Self {
             registry: Arc::new(registry),
             requests_total,
@@ -287,6 +314,9 @@ impl MetricsRegistry {
             cache_key_strategy,
             process_threads,
             resident_memory_bytes,
+            injections_blocked,
+            agent_loops_stopped,
+            budgets_enforced,
             dashboard: Arc::new(Mutex::new(DashboardState {
                 recent_requests: VecDeque::with_capacity(RECENT_REQUEST_CAPACITY),
                 cache_window: Vec::new(),
@@ -425,6 +455,18 @@ impl MetricsRegistry {
             .set(1.0);
     }
 
+    pub fn record_injection_blocked(&self) {
+        self.injections_blocked.inc();
+    }
+
+    pub fn record_agent_loop_stopped(&self) {
+        self.agent_loops_stopped.inc();
+    }
+
+    pub fn record_budget_enforced(&self) {
+        self.budgets_enforced.inc();
+    }
+
     fn note_dashboard_request(&self, provider: &str, route: &str, cache_status: &str) {
         let mut state = self.dashboard.lock().unwrap();
         let now = SystemTime::now();
@@ -464,7 +506,7 @@ impl MetricsRegistry {
         let comp_bytes = *totals.get("kotro_compressor_bytes_saved_total").unwrap_or(&0.0);
         let cache_bytes = *totals.get("kotro_cache_replay_bytes_total").unwrap_or(&0.0);
         let tokens_saved = (comp_bytes + cache_bytes) / 4.0;
-        let dollars_saved = tokens_saved * 0.000003;
+        let dollars_saved = tokens_saved * 0.000015;
 
         DashboardSnapshot {
             updated_at: format_iso_time(now),
@@ -479,6 +521,9 @@ impl MetricsRegistry {
             redactions_total: *totals.get("kotro_redactions_total").unwrap_or(&0.0),
             cache_entries: *totals.get("kotro_cache_entries").unwrap_or(&0.0),
             requests_total: *totals.get("kotro_requests_total").unwrap_or(&0.0),
+            injections_blocked_total: *totals.get("kotro_injections_blocked_total").unwrap_or(&0.0),
+            agent_loops_stopped_total: *totals.get("kotro_agent_loops_stopped_total").unwrap_or(&0.0),
+            budgets_enforced_total: *totals.get("kotro_budgets_enforced_total").unwrap_or(&0.0),
             recent_requests: recent,
         }
     }
@@ -492,6 +537,9 @@ impl MetricsRegistry {
         out.insert("kotro_redactions_total".to_string(), 0.0);
         out.insert("kotro_cache_entries".to_string(), 0.0);
         out.insert("kotro_requests_total".to_string(), 0.0);
+        out.insert("kotro_injections_blocked_total".to_string(), 0.0);
+        out.insert("kotro_agent_loops_stopped_total".to_string(), 0.0);
+        out.insert("kotro_budgets_enforced_total".to_string(), 0.0);
 
         let mfs = self.registry.gather();
         for mf in mfs {
