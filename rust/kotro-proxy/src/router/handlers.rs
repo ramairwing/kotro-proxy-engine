@@ -568,7 +568,7 @@ pub async fn handle_chat_completions(
         None
     };
     if let Some(ref finding) = injection_finding {
-        state.metrics.record_injection_blocked();
+        state.metrics.record_injection_detected();
         tracing::warn!(
             pattern = finding.pattern_name,
             role = %finding.role,
@@ -576,6 +576,7 @@ pub async fn handle_chat_completions(
             "kotro guardrail: MCP prompt injection detected"
         );
         if state.injection_block_on_detection {
+            state.metrics.record_injection_blocked();
             return problem_response(
                 StatusCode::BAD_REQUEST,
                 "Prompt Injection Detected",
@@ -706,7 +707,7 @@ pub async fn handle_chat_completions(
 
         // ── Budget enforcement (cache misses only) ────────────────────────────
         if state.budget.is_exceeded(&scope_key) {
-            state.metrics.record_budget_enforced();
+            state.metrics.record_budget_hit();
             tracing::warn!(
                 scope = %scope_key,
                 limit = state.budget.limit_tokens,
@@ -873,7 +874,7 @@ pub async fn handle_messages(
         None
     };
     if let Some(ref finding) = injection_finding {
-        state.metrics.record_injection_blocked();
+        state.metrics.record_injection_detected();
         tracing::warn!(
             pattern = finding.pattern_name,
             role = %finding.role,
@@ -881,6 +882,7 @@ pub async fn handle_messages(
             "kotro guardrail: MCP prompt injection detected"
         );
         if state.injection_block_on_detection {
+            state.metrics.record_injection_blocked();
             return problem_response(
                 StatusCode::BAD_REQUEST,
                 "Prompt Injection Detected",
@@ -1006,7 +1008,7 @@ pub async fn handle_messages(
 
         // ── Budget enforcement (cache misses only) ────────────────────────────
         if state.budget.is_exceeded(&scope_key) {
-            state.metrics.record_budget_enforced();
+            state.metrics.record_budget_hit();
             tracing::warn!(
                 scope = %scope_key,
                 limit = state.budget.limit_tokens,

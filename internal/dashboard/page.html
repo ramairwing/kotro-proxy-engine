@@ -378,9 +378,10 @@
         </div>
       </div>
       <div class="card glass">
-        <div class="label" style="color: var(--miss);">Injections Blocked</div>
+        <div class="label" style="color: var(--miss);">Injections Detected</div>
         <div class="value">
-          <span class="rolling-number" id="injections-blocked" data-val="0">0</span>
+          <span class="rolling-number" id="injections-detected" data-val="0">0</span>
+          <small id="injections-blocked-detail"></small>
         </div>
       </div>
       <div class="card glass">
@@ -390,9 +391,9 @@
         </div>
       </div>
       <div class="card glass">
-        <div class="label" style="color: var(--miss);">Budgets Enforced</div>
+        <div class="label" style="color: var(--miss);">Budget Hits</div>
         <div class="value">
-          <span class="rolling-number" id="budgets-enforced" data-val="0">0</span>
+          <span class="rolling-number" id="budget-hits" data-val="0">0</span>
         </div>
       </div>
       <div class="card glass">
@@ -543,9 +544,14 @@
         
       updateCounter('bytes-saved', data.compressor_bytes_saved_total, fmtBytes);
       updateCounter('tokens-saved', data.compressor_bytes_saved_total / 4, Math.round);
-      updateCounter('injections-blocked', data.injections_blocked_total, Math.round);
+      updateCounter('injections-detected', data.injections_detected_total, Math.round);
+      const blocked = Math.round(Number(data.injections_blocked_total) || 0);
+      const blockedEl = document.getElementById('injections-blocked-detail');
+      if (blockedEl) {
+        blockedEl.textContent = blocked > 0 ? `(${blocked} blocked)` : '';
+      }
       updateCounter('agent-loops-stopped', data.agent_loops_stopped_total, Math.round);
-      updateCounter('budgets-enforced', data.budgets_enforced_total, Math.round);
+      updateCounter('budget-hits', data.budget_hits_total, Math.round);
       updateCounter('redactions', data.redactions_total, Math.round);
       updateCounter('scopes', data.compressor_scopes_active, Math.round);
       updateCounter('requests', data.requests_total, Math.round);

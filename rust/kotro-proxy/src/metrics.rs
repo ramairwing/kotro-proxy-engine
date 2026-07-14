@@ -44,9 +44,13 @@ pub struct DashboardSnapshot {
     pub redactions_total: f64,
     pub cache_entries: f64,
     pub requests_total: f64,
+    /// Injection patterns detected (warn or block). Honest default-mode counter.
+    pub injections_detected_total: f64,
+    /// Injection patterns that caused an HTTP block (`KOTRO_INJECTION_BLOCK=true`).
     pub injections_blocked_total: f64,
     pub agent_loops_stopped_total: f64,
-    pub budgets_enforced_total: f64,
+    /// Session budget exceeded events (warn or hard block).
+    pub budget_hits_total: f64,
     pub recent_requests: Vec<RecentRequest>,
 }
 
@@ -80,11 +84,17 @@ pub struct MetricsRegistry {
     cache_key_strategy: GaugeVec,
     process_threads: Gauge,
     resident_memory_bytes: Gauge,
+    injections_detected: Counter,
     injections_blocked: Counter,
     agent_loops_stopped: Counter,
-    budgets_enforced: Counter,
+    budget_hits: Counter,
+    /// USD estimate per saved token for the dashboard hero card.
+    dashboard_usd_per_token: f64,
     dashboard: Arc<Mutex<DashboardState>>,
 }
+
+/// Default dashboard dollar rate (~GPT-4o-class blended input).
+pub const DEFAULT_DASHBOARD_USD_PER_TOKEN: f64 = 0.000015;
 
 impl Default for MetricsRegistry {
     fn default() -> Self {
@@ -269,9 +279,16 @@ impl MetricsRegistry {
         )
         .unwrap();
 
+        let injections_detected = register_counter_with_registry!(
+            "kotro_injections_detected_total",
+            "Total MCP prompt injection patterns detected (warn or block).",
+            registry
+        )
+        .unwrap();
+
         let injections_blocked = register_counter_with_registry!(
             "kotro_injections_blocked_total",
-            "Total MCP prompt injections blocked.",
+            "Total MCP prompt injections blocked (HTTP reject).",
             registry
         )
         .unwrap();
@@ -283,9 +300,9 @@ impl MetricsRegistry {
         )
         .unwrap();
 
-        let budgets_enforced = register_counter_with_registry!(
-            "kotro_budgets_enforced_total",
-            "Total times session token budget was enforced.",
+        let budget_hits = register_counter_with_registry!(
+            "kotro_budget_hits_total",
+            "Total times the session token budget was exceeded (warn or block).",
             registry
         )
         .unwrap();
@@ -314,14 +331,24 @@ impl MetricsRegistry {
             cache_key_strategy,
             process_threads,
             resident_memory_bytes,
+            injections_detected,
             injections_blocked,
             agent_loops_stopped,
-            budgets_enforced,
+            budget_hits,
+            dashboard_usd_per_token: DEFAULT_DASHBOARD_USD_PER_TOKEN,
             dashboard: Arc::new(Mutex::new(DashboardState {
                 recent_requests: VecDeque::with_capacity(RECENT_REQUEST_CAPACITY),
                 cache_window: Vec::new(),
             })),
         }
+    }
+
+    /// Override the dashboard token→USD conversion rate (default `0.000015`).
+    pub fn with_dashboard_usd_per_token(mut self, usd_per_token: f64) -> Self {
+        if usd_per_token.is_finite() && usd_per_token >= 0.0 {
+            self.dashboard_usd_per_token = usd_per_token;
+        }
+        self
     }
 
     pub fn gather_to_string(&self) -> String {
@@ -455,6 +482,10 @@ impl MetricsRegistry {
             .set(1.0);
     }
 
+    pub fn record_injection_detected(&self) {
+        self.injections_detected.inc();
+    }
+
     pub fn record_injection_blocked(&self) {
         self.injections_blocked.inc();
     }
@@ -463,8 +494,8 @@ impl MetricsRegistry {
         self.agent_loops_stopped.inc();
     }
 
-    pub fn record_budget_enforced(&self) {
-        self.budgets_enforced.inc();
+    pub fn record_budget_hit(&self) {
+        self.budget_hits.inc();
     }
 
     fn note_dashboard_request(&self, provider: &str, route: &str, cache_status: &str) {
@@ -506,7 +537,7 @@ impl MetricsRegistry {
         let comp_bytes = *totals.get("kotro_compressor_bytes_saved_total").unwrap_or(&0.0);
         let cache_bytes = *totals.get("kotro_cache_replay_bytes_total").unwrap_or(&0.0);
         let tokens_saved = (comp_bytes + cache_bytes) / 4.0;
-        let dollars_saved = tokens_saved * 0.000015;
+        let dollars_saved = tokens_saved * self.dashboard_usd_per_token;
 
         DashboardSnapshot {
             updated_at: format_iso_time(now),
@@ -521,9 +552,10 @@ impl MetricsRegistry {
             redactions_total: *totals.get("kotro_redactions_total").unwrap_or(&0.0),
             cache_entries: *totals.get("kotro_cache_entries").unwrap_or(&0.0),
             requests_total: *totals.get("kotro_requests_total").unwrap_or(&0.0),
+            injections_detected_total: *totals.get("kotro_injections_detected_total").unwrap_or(&0.0),
             injections_blocked_total: *totals.get("kotro_injections_blocked_total").unwrap_or(&0.0),
             agent_loops_stopped_total: *totals.get("kotro_agent_loops_stopped_total").unwrap_or(&0.0),
-            budgets_enforced_total: *totals.get("kotro_budgets_enforced_total").unwrap_or(&0.0),
+            budget_hits_total: *totals.get("kotro_budget_hits_total").unwrap_or(&0.0),
             recent_requests: recent,
         }
     }
@@ -537,9 +569,10 @@ impl MetricsRegistry {
         out.insert("kotro_redactions_total".to_string(), 0.0);
         out.insert("kotro_cache_entries".to_string(), 0.0);
         out.insert("kotro_requests_total".to_string(), 0.0);
+        out.insert("kotro_injections_detected_total".to_string(), 0.0);
         out.insert("kotro_injections_blocked_total".to_string(), 0.0);
         out.insert("kotro_agent_loops_stopped_total".to_string(), 0.0);
-        out.insert("kotro_budgets_enforced_total".to_string(), 0.0);
+        out.insert("kotro_budget_hits_total".to_string(), 0.0);
 
         let mfs = self.registry.gather();
         for mf in mfs {
@@ -607,4 +640,42 @@ fn format_iso_time(t: SystemTime) -> String {
     let seconds = seconds_in_day % 60;
 
     format!("UTC days since epoch: {days} {hours:02}:{minutes:02}:{seconds:02}.{nsecs:03}Z")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn security_counters_appear_in_snapshot() {
+        let metrics = MetricsRegistry::new();
+        metrics.record_injection_detected();
+        metrics.record_injection_detected();
+        metrics.record_injection_blocked();
+        metrics.record_agent_loop_stopped();
+        metrics.record_budget_hit();
+        metrics.record_budget_hit();
+
+        let snap = metrics.snapshot();
+        assert_eq!(snap.injections_detected_total, 2.0);
+        assert_eq!(snap.injections_blocked_total, 1.0);
+        assert_eq!(snap.agent_loops_stopped_total, 1.0);
+        assert_eq!(snap.budget_hits_total, 2.0);
+    }
+
+    #[test]
+    fn dashboard_usd_rate_is_configurable() {
+        let metrics = MetricsRegistry::new().with_dashboard_usd_per_token(0.001);
+        // 100 saved "tokens" via 400 compressor bytes ⇒ dollars = 100 * 0.001
+        metrics.record_compression(1, 400);
+
+        let snap = metrics.snapshot();
+        assert!((snap.estimated_dollars_saved - 0.1).abs() < 1e-9);
+    }
+
+    #[test]
+    fn invalid_usd_rate_keeps_default() {
+        let metrics = MetricsRegistry::new().with_dashboard_usd_per_token(-1.0);
+        assert!((metrics.dashboard_usd_per_token - DEFAULT_DASHBOARD_USD_PER_TOKEN).abs() < 1e-12);
+    }
 }

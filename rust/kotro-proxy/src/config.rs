@@ -69,6 +69,9 @@ pub struct Config {
     pub tool_cache_status_ttl_secs: u64,
     /// TTL in seconds for search tool results. Default: 3600.
     pub tool_cache_search_ttl_secs: u64,
+    /// USD estimate per saved token on the operator dashboard.
+    /// Default: `0.000015` (~GPT-4o-class). Override with `KOTRO_DASHBOARD_USD_PER_TOKEN`.
+    pub dashboard_usd_per_token: f64,
     /// Comma-separated list of paths to WASM plugin files to load at startup.
     pub wasm_plugins: Vec<String>,
     /// OpenTelemetry OTLP endpoint (e.g. "http://localhost:4317")
@@ -118,6 +121,7 @@ impl Default for Config {
             tool_cache_read_ttl_secs: 30,
             tool_cache_status_ttl_secs: 300,
             tool_cache_search_ttl_secs: 3600,
+            dashboard_usd_per_token: 0.000015,
             wasm_plugins: Vec::new(),
             otel_endpoint: None,
             redis_url: None,
@@ -217,6 +221,10 @@ impl Config {
             tool_cache_read_ttl_secs: env_u64("KOTRO_TOOL_CACHE_READ_TTL_SECS", defaults.tool_cache_read_ttl_secs),
             tool_cache_status_ttl_secs: env_u64("KOTRO_TOOL_CACHE_STATUS_TTL_SECS", defaults.tool_cache_status_ttl_secs),
             tool_cache_search_ttl_secs: env_u64("KOTRO_TOOL_CACHE_SEARCH_TTL_SECS", defaults.tool_cache_search_ttl_secs),
+            dashboard_usd_per_token: env_f64(
+                "KOTRO_DASHBOARD_USD_PER_TOKEN",
+                defaults.dashboard_usd_per_token,
+            ),
             wasm_plugins: env_csv("KOTRO_WASM_PLUGINS", defaults.wasm_plugins),
             otel_endpoint: env_opt("KOTRO_OTEL_ENDPOINT"),
             redis_url: env_opt("KOTRO_REDIS_URL"),
@@ -242,6 +250,16 @@ fn env_bool(key: &str, fallback: bool) -> bool {
 fn env_u64(key: &str, fallback: u64) -> u64 {
     match env::var(key) {
         Ok(v) => v.parse().unwrap_or(fallback),
+        Err(_) => fallback,
+    }
+}
+
+fn env_f64(key: &str, fallback: f64) -> f64 {
+    match env::var(key) {
+        Ok(v) => match v.parse::<f64>() {
+            Ok(n) if n.is_finite() && n >= 0.0 => n,
+            _ => fallback,
+        },
         Err(_) => fallback,
     }
 }
