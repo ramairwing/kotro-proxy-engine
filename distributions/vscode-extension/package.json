@@ -69,7 +69,7 @@
         "kotrolabs.bridgeToken": {
           "type": "string",
           "default": "",
-          "description": "When set (KOTRO_BRIDGE_TOKEN), LLM routes require this token. Put the same value in Cursor’s OpenAI API key field when using a public tunnel. Leave empty for localhost-only clients."
+          "description": "When set (KOTRO_BRIDGE_TOKEN), LLM routes require this token. Generate with `uuidgen` or `openssl rand -hex 32`. Put the same value in Cursor’s OpenAI API key field when using a public tunnel. Leave empty for localhost-only clients."
         },
         "kotrolabs.upstreamApiKey": {
           "type": "string",

@@ -80,7 +80,7 @@ Planned (0.7): **Kotro: Enable Cursor Bridge** (managed tunnel + stop on deactiv
 | `kotrolabs.listenAddr` | `:8080` | `KOTRO_LISTEN_ADDR` |
 | `kotrolabs.metricsAddr` | `127.0.0.1:9090` | `KOTRO_METRICS_ADDR` |
 | `kotrolabs.upstreamUrl` | `https://api.openai.com` | `KOTRO_UPSTREAM_URL` |
-| `kotrolabs.bridgeToken` | _(empty)_ | `KOTRO_BRIDGE_TOKEN` — required for public tunnels; put same value in Cursor API key field |
+| `kotrolabs.bridgeToken` | _(empty)_ | `KOTRO_BRIDGE_TOKEN` — for public tunnels; generate with `uuidgen` or `openssl rand -hex 32`; put same value in Cursor API key field |
 | `kotrolabs.upstreamApiKey` | _(empty)_ | `KOTRO_UPSTREAM_API_KEY` — real provider key (only when bridgeToken is set) |
 | `kotrolabs.enableCache` | `true` | `KOTRO_ENABLE_CACHE` |
 | `kotrolabs.enableRedaction` | `true` | `KOTRO_ENABLE_REDACTION` |

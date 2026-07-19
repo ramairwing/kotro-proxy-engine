@@ -53,9 +53,17 @@ Auth model details: [CURSOR-BRIDGE.md](./CURSOR-BRIDGE.md).
 
 **0b.** Bridge auth (recommended for any tunnel):
 
+Generate a token (do **not** reuse your provider API key):
+
+```bash
+uuidgen                 # macOS — e.g. 57324CEC-67A7-4DCE-AEDF-20762224E03A
+# or
+openssl rand -hex 32    # portable 64-char hex
+```
+
 | Setting | Value |
 |---------|--------|
-| `kotrolabs.bridgeToken` | random UUID (e.g. `uuidgen`) |
+| `kotrolabs.bridgeToken` | paste the generated token |
 | `kotrolabs.upstreamApiKey` | your DeepSeek / OpenAI / Anthropic key |
 | `kotrolabs.upstreamUrl` | e.g. `https://api.deepseek.com` |
 

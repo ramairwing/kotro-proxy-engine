@@ -10,7 +10,14 @@ Cursor Chat/Agent Override Base URL is executed from **Cursor’s cloud**, which
 
 Cursor BYOK UI typically exposes **Base URL + API key**, not arbitrary custom headers:
 
-1. Set `KOTRO_BRIDGE_TOKEN` (or extension `kotrolabs.bridgeToken`) — UUID recommended.
+1. Set `KOTRO_BRIDGE_TOKEN` (or extension `kotrolabs.bridgeToken`) — a long random secret (UUID or hex). Generate one:
+
+```bash
+uuidgen                    # macOS / many Linux distros
+# or
+openssl rand -hex 32       # portable
+```
+
 2. Set `KOTRO_UPSTREAM_API_KEY` (or `kotrolabs.upstreamApiKey`) to the real provider key.
 3. Put the **bridge token** in Cursor’s OpenAI API key field.
 4. Put the tunnel URL in Override Base URL (`https://….trycloudflare.com/v1`).
