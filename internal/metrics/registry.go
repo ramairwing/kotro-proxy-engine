@@ -237,13 +237,13 @@ func (r *Registry) sampleRuntime() {
 }
 
 // RecordRequest records request-plane metrics.
-func (r *Registry) RecordRequest(provider, route, stream, cacheStatus string, elapsed time.Duration) {
+func (r *Registry) RecordRequest(provider, model, route, stream, cacheStatus string, elapsed time.Duration) {
 	if r == nil {
 		return
 	}
 	r.requestsTotal.WithLabelValues(provider, route, stream).Inc()
 	r.requestDuration.WithLabelValues(provider, cacheStatus).Observe(elapsed.Seconds())
-	r.noteDashboardRequest(provider, route, cacheStatus)
+	r.noteDashboardRequest(provider, model, route, cacheStatus)
 }
 
 // RecordRequestBody observes incoming payload size.

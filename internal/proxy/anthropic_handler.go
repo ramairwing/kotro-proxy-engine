@@ -114,6 +114,7 @@ func (h *AnthropicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	recordScopeMetrics(h.opts.Metrics, scopeMeta)
 
 	processed, cacheSource, redactionMap := h.applyAnthropicMiddleware(scope, req)
+	obs.setModel(processed.Model)
 	recordRedactionMetrics(h.opts.Metrics, redactionMap)
 	cacheKey := h.anthropicCacheKey(scope, cacheSource)
 

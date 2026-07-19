@@ -437,7 +437,7 @@
           <thead>
             <tr>
               <th>Time (Local)</th>
-              <th>Provider</th>
+              <th>Model</th>
               <th>Route</th>
               <th>Status</th>
             </tr>
@@ -585,7 +585,8 @@
       const html = data.recent_requests.map(function (r) {
         // Convert UTC to local browser time
         const t = new Date(r.at).toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'}) + '.' + new Date(r.at).getMilliseconds().toString().padStart(3, '0');
-        return '<tr><td>' + t + '</td><td>' + r.provider + '</td><td style="font-family: monospace;">' + r.route + '</td><td>' + pill(r.cache_status) + '</td></tr>';
+        const modelLabel = (r.model && String(r.model).trim()) ? r.model : (r.provider || '—');
+        return '<tr><td>' + t + '</td><td style="font-family: monospace;">' + modelLabel + '</td><td style="font-family: monospace;">' + r.route + '</td><td>' + pill(r.cache_status) + '</td></tr>';
       }).join('');
       
       // Only inject if changed to allow animations to settle, or do a smart diff (simple approach: just replace)

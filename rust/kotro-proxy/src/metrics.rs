@@ -20,6 +20,9 @@ const CACHE_WINDOW_DURATION: Duration = Duration::from_secs(5 * 60); // 5 minute
 pub struct RecentRequest {
     pub at: String, // ISO-8601 string
     pub provider: String,
+    /// Request model id (e.g. `deepseek-v4-flash`). Empty when unknown.
+    #[serde(default)]
+    pub model: String,
     pub route: String,
     pub cache_status: String,
 }
@@ -372,6 +375,7 @@ impl MetricsRegistry {
     pub fn record_request(
         &self,
         provider: &str,
+        model: &str,
         route: &str,
         stream: bool,
         cache_status: &str,
@@ -385,7 +389,7 @@ impl MetricsRegistry {
             .with_label_values(&[provider, cache_status])
             .observe(elapsed.as_secs_f64());
 
-        self.note_dashboard_request(provider, route, cache_status);
+        self.note_dashboard_request(provider, model, route, cache_status);
     }
 
     pub fn record_request_body(&self, provider: &str, nbytes: usize) {
@@ -498,7 +502,7 @@ impl MetricsRegistry {
         self.budget_hits.inc();
     }
 
-    fn note_dashboard_request(&self, provider: &str, route: &str, cache_status: &str) {
+    fn note_dashboard_request(&self, provider: &str, model: &str, route: &str, cache_status: &str) {
         let mut state = self.dashboard.lock().unwrap();
         let now = SystemTime::now();
 
@@ -513,6 +517,7 @@ impl MetricsRegistry {
         state.recent_requests.push_front(RecentRequest {
             at: iso_time,
             provider: provider.to_string(),
+            model: model.to_string(),
             route: route.to_string(),
             cache_status: cache_status.to_string(),
         });
@@ -651,7 +656,7 @@ mod tests {
         let metrics = MetricsRegistry::new();
         metrics.record_injection_detected();
         metrics.record_injection_blocked();
-        metrics.record_request("openai", "/v1/chat/completions", false, "blocked", Duration::from_millis(3));
+        metrics.record_request("openai", "gpt-4o", "/v1/chat/completions", false, "blocked", Duration::from_millis(3));
 
         let snap = metrics.snapshot();
         assert_eq!(snap.injections_detected_total, 1.0);
@@ -659,6 +664,7 @@ mod tests {
         assert!(snap.requests_total >= 1.0);
         assert_eq!(snap.recent_requests.len(), 1);
         assert_eq!(snap.recent_requests[0].cache_status, "blocked");
+        assert_eq!(snap.recent_requests[0].model, "gpt-4o");
     }
 
     #[test]

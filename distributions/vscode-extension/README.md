@@ -72,7 +72,7 @@ You can decline both prompts and configure agents yourself.
 
 Cursor’s Override Base URL is called from **Cursor’s cloud**, which **blocks** `localhost` (*Access to private networks is forbidden*).
 
-Today: temporary HTTPS tunnel — see the [first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md#quick-tunnel-for-cursor-chat-temporary).  
+Today: temporary HTTPS tunnel + **bridge auth** — see the [first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md).  
 Planned (0.7): **Kotro: Enable Cursor Bridge** (managed tunnel + stop on deactivate).
 
 | Setting | Default | Maps to |
@@ -80,6 +80,8 @@ Planned (0.7): **Kotro: Enable Cursor Bridge** (managed tunnel + stop on deactiv
 | `kotrolabs.listenAddr` | `:8080` | `KOTRO_LISTEN_ADDR` |
 | `kotrolabs.metricsAddr` | `127.0.0.1:9090` | `KOTRO_METRICS_ADDR` |
 | `kotrolabs.upstreamUrl` | `https://api.openai.com` | `KOTRO_UPSTREAM_URL` |
+| `kotrolabs.bridgeToken` | _(empty)_ | `KOTRO_BRIDGE_TOKEN` — required for public tunnels; put same value in Cursor API key field |
+| `kotrolabs.upstreamApiKey` | _(empty)_ | `KOTRO_UPSTREAM_API_KEY` — real provider key (only when bridgeToken is set) |
 | `kotrolabs.enableCache` | `true` | `KOTRO_ENABLE_CACHE` |
 | `kotrolabs.enableRedaction` | `true` | `KOTRO_ENABLE_REDACTION` |
 | `kotrolabs.enableCompression` | `true` | `KOTRO_ENABLE_COMPRESSION` |
@@ -121,7 +123,8 @@ Then **Developer: Reload Window**. Full steps: [§5 in the first-run guide](http
 | **Kotro: Verify Cache** | Keyless MISS→HIT via `kotro-local-verify` (or provider key fallback) |
 | **Kotro: Connect Cursor** | Wizard for routing Cursor BYOK chat through the proxy |
 | **Kotro: Setup Continue.dev Config** | Alias for Setup Wizard |
-| **Kotro: Open Dashboard** | Opens the local operator UI |
+| **Kotro: Open Dashboard** | Opens `http://127.0.0.1:9090/dashboard` |
+| **Kotro: Status Menu** | Same as clicking the status bar — dashboard, quick summary, Cursor help |
 | **Kotro: Show Proxy Logs** | Opens the extension output channel (startup / errors) |
 
 ## Architecture

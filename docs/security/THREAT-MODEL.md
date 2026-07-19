@@ -56,6 +56,7 @@ Client (IDE / SDK / agent)  →  Kotro (:8080)  →  Upstream (OpenAI / Anthropi
 - Bind to loopback in dev: `KOTRO_LISTEN_ADDR=127.0.0.1:8080`
 - Use host firewall / network policy in shared environments
 - Do not expose an unauthenticated proxy to the public internet
+- When using a public HTTPS tunnel (Cursor Chat), set `KOTRO_BRIDGE_TOKEN` + `KOTRO_UPSTREAM_API_KEY` so URL-only callers get **401** (see `docs/guides/CURSOR-BRIDGE.md`)
 
 ### 3.2 Boundary B — Kotro → Upstream provider
 

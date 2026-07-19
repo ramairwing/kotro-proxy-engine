@@ -68,9 +68,9 @@ Cursor **Chat / Agent** does **not** dial your laptop. Override Base URL is invo
 | **Claude Code** | Your terminal | ✅ Direct `localhost` | `ANTHROPIC_BASE_URL=http://localhost:8080` |
 | **curl / scripts / SDKs** | Your machine | ✅ Direct `localhost` | `OPENAI_BASE_URL=http://127.0.0.1:8080/v1` |
 | **Kotro: Verify Cache** | Extension host | ✅ Direct `localhost` | Command Palette — no BYOK needed |
-| **Cursor Chat / Agent** | Cursor cloud | ✅ Via **HTTPS bridge** only | Temporary tunnel today; **Enable Cursor Bridge** in 0.7 — [guide](docs/guides/CURSOR-FIRST-RUN.md) |
+| **Cursor Chat / Agent** | Cursor cloud | ✅ Via **HTTPS bridge** only | Tunnel + `kotrolabs.bridgeToken` / `upstreamApiKey` today; managed Bridge in 0.7 — [guide](docs/guides/CURSOR-FIRST-RUN.md) |
 
-**Pitch:** For Continue, Cline, and Claude Code — direct localhost, minimal setup. For Cursor Chat — you need a public HTTPS URL (tunnel/bridge); Verify Cache still proves the sidecar without that.
+**Pitch:** For Continue, Cline, and Claude Code — direct localhost, minimal setup. For Cursor Chat — public HTTPS URL (tunnel) **plus bridge auth** so a leaked URL alone cannot use your proxy; Verify Cache still proves the sidecar without a tunnel.
 
 ### Without Kotro → with Kotro
 
@@ -101,7 +101,7 @@ make demo-injection    # warn → HTTP 400 block + security tiles
 2. **Cmd+Shift+P** → **Kotro: Verify Cache** → expect MISS then HIT  
 3. Open dashboard: `http://127.0.0.1:9090/dashboard`
 
-**Cursor Chat** cannot use `http://localhost:8080/v1`. Use the [Cursor first-run guide](docs/guides/CURSOR-FIRST-RUN.md) (Cloudflare quick tunnel today). Planned: one-command **Kotro: Enable Cursor Bridge**.
+**Cursor Chat** cannot use `http://localhost:8080/v1`. Use the [Cursor first-run guide](docs/guides/CURSOR-FIRST-RUN.md): Cloudflare quick tunnel + **`kotrolabs.bridgeToken`** / **`kotrolabs.upstreamApiKey`** (Cursor’s API key field holds the bridge token only). Planned: one-command **Kotro: Enable Cursor Bridge**.
 
 Prefer fully local routing inside the editor? Use **Continue.dev** or **Cline** (Setup Wizard) instead of Cursor’s built-in Chat.
 

@@ -11,7 +11,7 @@
 | Prove Kotro works | **Kotro: Verify Cache** (no tunnel) |
 | Local routing in-editor | **Continue.dev** or **Cline** (Setup Wizard) |
 | Claude in terminal | `ANTHROPIC_BASE_URL=http://localhost:8080` |
-| Cursor built-in Chat | Temporary **HTTPS tunnel** below (Bridge command in 0.7) |
+| Cursor built-in Chat | Tunnel + **bridge auth** (`kotrolabs.bridgeToken` / `upstreamApiKey`) — Bridge command in 0.7 |
 
 Full client matrix: repository [README](../../README.md#which-client-works-how).
 
@@ -35,14 +35,31 @@ Cline “not a registered configuration” in the wizard log is harmless if Clin
 
 ### Security (not small print)
 
-A `*.trycloudflare.com` URL is **public until you stop the tunnel**. Anyone who learns the URL can hit your local Kotro. Use only while testing; `Ctrl+C` when done.
+A `*.trycloudflare.com` URL is **public until you stop the tunnel**. Anyone who learns the URL can *reach* your local Kotro — but with **bridge auth** they cannot use it without the token:
 
-Planned **Kotro: Enable Cursor Bridge** (0.7) will: check/install `cloudflared` with consent, start/stop the tunnel, generate a **bridge token**, and auto-kill on window close.  
-Auth model (no Cursor custom-header UI): Cursor’s OpenAI API key field holds the **bridge token**; the real provider key stays in extension settings (`kotrolabs` / env) for upstream forward. Do **not** assume Cursor supports arbitrary custom headers.
+1. Set extension settings (or env): `kotrolabs.bridgeToken` + `kotrolabs.upstreamApiKey`
+2. Reload so the sidecar picks them up (`KOTRO_BRIDGE_TOKEN` / `KOTRO_UPSTREAM_API_KEY`)
+3. Put the **bridge token** in Cursor’s OpenAI API key field (not the provider key)
+4. Provider key stays only in `kotrolabs.upstreamApiKey` — Kotro injects it upstream
+
+Without the matching token, LLM routes return **401**. Still `Ctrl+C` the tunnel when idle; don’t paste the URL in public channels.
+
+Planned **Kotro: Enable Cursor Bridge** (0.7) will: check/install `cloudflared` with consent, start/stop the tunnel, generate a bridge token, and auto-kill on window close.  
+Auth model details: [CURSOR-BRIDGE.md](./CURSOR-BRIDGE.md).
 
 ### Steps (manual)
 
 **0.** Kotro running (`curl http://127.0.0.1:8080/healthz` → ok).
+
+**0b.** Bridge auth (recommended for any tunnel):
+
+| Setting | Value |
+|---------|--------|
+| `kotrolabs.bridgeToken` | random UUID (e.g. `uuidgen`) |
+| `kotrolabs.upstreamApiKey` | your DeepSeek / OpenAI / Anthropic key |
+| `kotrolabs.upstreamUrl` | e.g. `https://api.deepseek.com` |
+
+Reload the window after saving.
 
 **1.** Install once:
 
@@ -64,10 +81,11 @@ Copy `https://….trycloudflare.com`.
 |---------|--------|
 | Override OpenAI Base URL | **ON** |
 | Base URL | `https://….trycloudflare.com/v1` |
-| OpenAI API key | your **provider** key (DeepSeek / OpenAI) |
+| OpenAI API key | your **bridge token** (same as `kotrolabs.bridgeToken`) |
 | Add Model | e.g. `deepseek-v4-flash` |
 
-Never set Base URL to `http://localhost:8080/v1` for Cursor Chat.
+Never set Base URL to `http://localhost:8080/v1` for Cursor Chat.  
+Never put the real provider key in Cursor’s API key field when bridge auth is on.
 
 **4.** Chat with that model (not Auto). Send twice; dashboard should show miss/hit.
 

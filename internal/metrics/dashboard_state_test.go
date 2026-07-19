@@ -11,9 +11,9 @@ func TestSnapshotCacheHitRate5m(t *testing.T) {
 	reg := metrics.NewRegistry()
 	t.Cleanup(reg.Unregister)
 
-	reg.RecordRequest("openai", "/v1/chat/completions", "true", "hit", time.Millisecond)
-	reg.RecordRequest("openai", "/v1/chat/completions", "true", "hit", time.Millisecond)
-	reg.RecordRequest("openai", "/v1/chat/completions", "true", "miss", time.Millisecond)
+	reg.RecordRequest("openai", "gpt-4o", "/v1/chat/completions", "true", "hit", time.Millisecond)
+	reg.RecordRequest("openai", "gpt-4o", "/v1/chat/completions", "true", "hit", time.Millisecond)
+	reg.RecordRequest("openai", "gpt-4o", "/v1/chat/completions", "true", "miss", time.Millisecond)
 
 	snap := reg.Snapshot()
 	if snap.CacheHits5m != 2 || snap.CacheMisses5m != 1 {

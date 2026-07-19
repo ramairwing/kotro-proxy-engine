@@ -1,6 +1,7 @@
 #![allow(clippy::result_large_err)]
 //! Axum HTTP/2 router — mirrors `internal/server/server.go` + handlers.
 
+mod bridge_auth;
 mod handlers;
 pub mod scope;
 pub mod upstream;
@@ -72,6 +73,10 @@ pub struct AppState {
     pub tool_cache: Arc<crate::cache::tool::ToolCache>,
     /// WASM plugin engine
     pub plugin_manager: Arc<crate::plugins::wasm::PluginManager>,
+    /// When set, require this token on LLM routes (public tunnel / Cursor Bridge).
+    pub bridge_token: Option<String>,
+    /// Provider key injected upstream when `bridge_token` is set.
+    pub upstream_api_key: Option<String>,
 }
 
 impl AppState {
@@ -142,6 +147,8 @@ impl AppState {
                 tracing::error!("Failed to initialize WASM plugins: {}", e);
                 crate::plugins::wasm::PluginManager::new(&[]).unwrap()
             })),
+            bridge_token: cfg.bridge_token.clone(),
+            upstream_api_key: cfg.upstream_api_key.clone(),
         }
     }
 }
@@ -192,7 +199,10 @@ pub fn build_http_client() -> Result<Client, reqwest::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::SocketAddr;
+
     use axum::body::Body;
+    use axum::extract::ConnectInfo;
     use http_body_util::BodyExt;
     use tower::ServiceExt;
 
@@ -220,5 +230,69 @@ mod tests {
         assert_eq!(response.status(), axum::http::StatusCode::OK);
         let body = response.into_body().collect().await.unwrap().to_bytes();
         assert!(body.windows(2).any(|w| w == b"ok"));
+    }
+
+    #[tokio::test]
+    async fn bridge_token_rejects_missing_auth() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        cfg.cache_db_path = dir.path().join("cache.db").display().to_string();
+        cfg.bridge_token = Some("test-bridge".into());
+        cfg.upstream_api_key = Some("sk-test".into());
+
+        let store = open_store(&cfg).unwrap();
+        let client = build_http_client().unwrap();
+        let app = create_router(AppState::new(
+            &cfg,
+            store,
+            client,
+            crate::metrics::MetricsRegistry::new(),
+        ));
+
+        let response = app
+            .oneshot(
+                axum::http::Request::builder()
+                    .method("POST")
+                    .uri("/v1/chat/completions")
+                    .header("content-type", "application/json")
+                    .extension(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 43_210))))
+                    .body(Body::from(
+                        r#"{"model":"gpt-4o","messages":[{"role":"user","content":"hi"}],"stream":false}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), axum::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn healthz_ok_even_with_bridge_token() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cfg = Config::default();
+        cfg.cache_db_path = dir.path().join("cache.db").display().to_string();
+        cfg.bridge_token = Some("test-bridge".into());
+
+        let store = open_store(&cfg).unwrap();
+        let client = build_http_client().unwrap();
+        let app = create_router(AppState::new(
+            &cfg,
+            store,
+            client,
+            crate::metrics::MetricsRegistry::new(),
+        ));
+
+        let response = app
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/healthz")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
     }
 }

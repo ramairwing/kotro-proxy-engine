@@ -26,12 +26,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     };
 
+    let bridge_enabled = cfg
+        .bridge_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .is_some();
+    if bridge_enabled && cfg.upstream_api_key.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_none() {
+        tracing::warn!(
+            "KOTRO_BRIDGE_TOKEN is set without KOTRO_UPSTREAM_API_KEY — \
+             upstream LLM calls will return 503 until the provider key is configured"
+        );
+    }
+
     info!(
         service = "kotro-proxy",
         listen = %cfg.listen_addr,
         metrics = %cfg.metrics_addr,
         upstream = %cfg.upstream_url,
         fallback_configured = cfg.fallback_url.is_some(),
+        bridge_auth = bridge_enabled,
         profile = %env::var("KOTRO_PROFILE").unwrap_or_default(),
         cache_strategy = ?cfg.cache_key_strategy,
         cache_window = cfg.cache_window_size,

@@ -13,7 +13,7 @@ func TestRegistryHandlerExposesCoreMetrics(t *testing.T) {
 	reg := metrics.NewRegistry()
 	t.Cleanup(reg.Unregister)
 
-	reg.RecordRequest("openai", "/v1/chat/completions", "true", "hit", 0)
+	reg.RecordRequest("openai", "gpt-4o", "/v1/chat/completions", "true", "hit", 0)
 	reg.RecordCacheHit("openai", 128)
 	reg.RecordCompression(2, 512)
 	reg.RecordRedaction("api_key")

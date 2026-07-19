@@ -15,6 +15,7 @@ const (
 type RecentRequest struct {
 	At          time.Time `json:"at"`
 	Provider    string    `json:"provider"`
+	Model       string    `json:"model"`
 	Route       string    `json:"route"`
 	CacheStatus string    `json:"cache_status"`
 }
@@ -41,7 +42,7 @@ type cacheWindowEvent struct {
 	at  time.Time
 }
 
-func (r *Registry) noteDashboardRequest(provider, route, cacheStatus string) {
+func (r *Registry) noteDashboardRequest(provider, model, route, cacheStatus string) {
 	r.dashboardMu.Lock()
 	defer r.dashboardMu.Unlock()
 
@@ -55,6 +56,7 @@ func (r *Registry) noteDashboardRequest(provider, route, cacheStatus string) {
 	r.recentRequests = append([]RecentRequest{{
 		At:          time.Now().UTC(),
 		Provider:    provider,
+		Model:       model,
 		Route:       route,
 		CacheStatus: cacheStatus,
 	}}, r.recentRequests...)

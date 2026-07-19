@@ -12,6 +12,7 @@ type ctxKeyUpstreamStart struct{}
 type requestObserver struct {
 	metrics     *metrics.Registry
 	provider    string
+	model       string
 	route       string
 	stream      string
 	cacheStatus string
@@ -27,6 +28,13 @@ func newRequestObserver(m *metrics.Registry, provider, route string) *requestObs
 		stream:      "false",
 		started:     time.Now(),
 	}
+}
+
+func (o *requestObserver) setModel(model string) {
+	if o == nil {
+		return
+	}
+	o.model = model
 }
 
 func (o *requestObserver) setStream(stream bool) {
@@ -47,7 +55,7 @@ func (o *requestObserver) finish() {
 	if o == nil || o.metrics == nil {
 		return
 	}
-	o.metrics.RecordRequest(o.provider, o.route, o.stream, o.cacheStatus, time.Since(o.started))
+	o.metrics.RecordRequest(o.provider, o.model, o.route, o.stream, o.cacheStatus, time.Since(o.started))
 }
 
 func recordScopeMetrics(m *metrics.Registry, meta ScopeMeta) {

@@ -78,6 +78,14 @@ pub struct Config {
     pub otel_endpoint: Option<String>,
     /// Redis connection URL for shared team cache (e.g. "redis://127.0.0.1:6379/")
     pub redis_url: Option<String>,
+    /// When set, LLM routes require this token (`Authorization: Bearer`, `x-api-key`,
+    /// or `x-kotro-bridge-token`). Used for public HTTPS tunnels (Cursor Chat).
+    /// Set with `KOTRO_BRIDGE_TOKEN`.
+    pub bridge_token: Option<String>,
+    /// Provider API key injected on upstream forward when `bridge_token` is set.
+    /// Cursor’s API key field should hold the bridge token, not this value.
+    /// Set with `KOTRO_UPSTREAM_API_KEY`.
+    pub upstream_api_key: Option<String>,
 }
 
 impl Default for Config {
@@ -125,6 +133,8 @@ impl Default for Config {
             wasm_plugins: Vec::new(),
             otel_endpoint: None,
             redis_url: None,
+            bridge_token: None,
+            upstream_api_key: None,
         }
     }
 }
@@ -228,6 +238,8 @@ impl Config {
             wasm_plugins: env_csv("KOTRO_WASM_PLUGINS", defaults.wasm_plugins),
             otel_endpoint: env_opt("KOTRO_OTEL_ENDPOINT"),
             redis_url: env_opt("KOTRO_REDIS_URL"),
+            bridge_token: env_opt("KOTRO_BRIDGE_TOKEN"),
+            upstream_api_key: env_opt("KOTRO_UPSTREAM_API_KEY"),
         }
     }
 }

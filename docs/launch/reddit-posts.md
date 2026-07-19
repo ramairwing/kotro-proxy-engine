@@ -12,11 +12,12 @@ I run a local Rust sidecar (Kotro) for injection scan + cache between coding age
 - **Continue.dev / Cline** (opt-in Setup Wizard) — they call from the IDE process
 - Dashboard at http://127.0.0.1:9090/dashboard
 
-**Cursor Chat / Agent cannot use `http://localhost:8080`.** Override Base URL is called from Cursor’s cloud, which blocks private IPs (SSRF). You need a temporary HTTPS tunnel (Cloudflare quick tunnel today; one-command Bridge planned). Even then, prompts still pass through Cursor’s servers first — Kotro still helps on the provider hop (cache / scan / redact).
+**Cursor Chat / Agent cannot use `http://localhost:8080`.** Override Base URL is called from Cursor’s cloud, which blocks private IPs (SSRF). You need a temporary HTTPS tunnel (Cloudflare quick tunnel today; one-command Bridge planned). Set `kotrolabs.bridgeToken` + `kotrolabs.upstreamApiKey` so a public tunnel URL alone cannot use your proxy — put the bridge token in Cursor’s API key field. Even then, prompts still pass through Cursor’s servers first — Kotro still helps on the provider hop (cache / scan / redact).
 
 Install: search **Kotro Proxy Engine** in the marketplace, or `brew install kotro-labs/tap/kotro-proxy`.
 
-Client matrix + tunnel steps: https://github.com/kotro-labs/kotro-proxy-engine (README)
+Setup guide: https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md  
+Client matrix: https://github.com/kotro-labs/kotro-proxy-engine (README)
 
 Happy to answer questions about the HTTP-path injection scanner vs MCP-stdio firewalls.
 

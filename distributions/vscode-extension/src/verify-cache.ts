@@ -137,17 +137,23 @@ export async function verifyCache(
   options?: {
     context?: vscode.ExtensionContext;
     upstreamUrl?: string;
+    /** When set, sent as Authorization Bearer (required if proxy has KOTRO_BRIDGE_TOKEN). */
+    bridgeToken?: string;
+    /** Used for provider-backed verify fallback when bridge auth injects this upstream. */
+    upstreamApiKey?: string;
   },
 ): Promise<VerifyResult> {
   const url = `${listenBaseUrl(listenAddr)}/v1/chat/completions`;
   const prompt = `[kotro-verify] ${Date.now()} What is a semantic cache in one sentence?`;
   const upstreamUrl = options?.upstreamUrl ?? 'https://api.openai.com';
+  const bridgeToken = options?.bridgeToken?.trim() || undefined;
 
   // 1) Prefer keyless local fixture (proxy supports kotro-local-verify).
+  //    Still send bridge token when configured — local verify never needs the provider key.
   try {
-    const firstLocal = await postOnce(url, LOCAL_VERIFY_MODEL, prompt);
+    const firstLocal = await postOnce(url, LOCAL_VERIFY_MODEL, prompt, bridgeToken);
     await sleep(STORE_SETTLE_MS);
-    const secondLocal = await postOnce(url, LOCAL_VERIFY_MODEL, prompt);
+    const secondLocal = await postOnce(url, LOCAL_VERIFY_MODEL, prompt, bridgeToken);
 
     if (firstLocal.label === 'bypass' || secondLocal.label === 'bypass') {
       return {
@@ -177,8 +183,14 @@ export async function verifyCache(
   }
 
   // 2) Provider-backed verify (needs API key matching kotrolabs.upstreamUrl).
-  const apiKey = await resolveApiKey(options?.context);
-  if (!apiKey) {
+  //    With bridge auth: send bridge token; proxy injects KOTRO_UPSTREAM_API_KEY.
+  //    Without bridge: send the provider key as Bearer (legacy path).
+  let clientKey = bridgeToken;
+  if (!clientKey) {
+    clientKey =
+      options?.upstreamApiKey?.trim() || (await resolveApiKey(options?.context));
+  }
+  if (!clientKey) {
     return {
       first: 'error',
       second: 'error',
@@ -186,7 +198,19 @@ export async function verifyCache(
       detail:
         `Keyless verify did not return HIT (need a proxy build with model ${LOCAL_VERIFY_MODEL}). ` +
         'Provide a provider API key when prompted, or set OPENAI_API_KEY / DEEPSEEK_API_KEY in the environment Cursor was launched from. ' +
-        'Also ensure kotrolabs.upstreamUrl matches that provider.',
+        'Also ensure kotrolabs.upstreamUrl matches that provider. ' +
+        'If using a public tunnel, set kotrolabs.bridgeToken + kotrolabs.upstreamApiKey.',
+    };
+  }
+
+  if (bridgeToken && !options?.upstreamApiKey?.trim()) {
+    return {
+      first: 'error',
+      second: 'error',
+      ok: false,
+      detail:
+        'kotrolabs.bridgeToken is set but kotrolabs.upstreamApiKey is empty. ' +
+        'Provider-backed verify needs the upstream key on the proxy (Cursor’s API key field should hold only the bridge token).',
     };
   }
 
@@ -195,7 +219,7 @@ export async function verifyCache(
 
   let first: CacheLabel;
   try {
-    first = (await postOnce(url, model, providerPrompt, apiKey)).label;
+    first = (await postOnce(url, model, providerPrompt, clientKey)).label;
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return {
@@ -210,7 +234,7 @@ export async function verifyCache(
 
   let second: CacheLabel;
   try {
-    second = (await postOnce(url, model, providerPrompt, apiKey)).label;
+    second = (await postOnce(url, model, providerPrompt, clientKey)).label;
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return {

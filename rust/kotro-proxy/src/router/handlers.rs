@@ -16,11 +16,11 @@ use futures_util::StreamExt;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde::Serialize;
 use serde_json::Value;
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tracing::{error, info};
 
 use crate::budget::BudgetTracker;
-use crate::cache::generate_cache_key;
+use crate::cache::{generate_cache_key, Entry};
 use crate::compressor::Scope;
 use crate::guardrail::{InjectionFinding, RedactionMap};
 use crate::router::classifier::{classify_complexity, PromptComplexity};
@@ -32,9 +32,15 @@ use crate::models::{anthropic::MessagesRequest, openai::ChatCompletionRequest, u
 use crate::proxy::pipeline::{create_processing_pipeline, PipelineOptions, StreamFormat};
 use crate::proxy::replay::create_cached_replay_stream;
 use crate::router::AppState;
+use crate::router::bridge_auth::{self, UpstreamAuthStyle};
 use crate::router::upstream;
 
 const UPSTREAM_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Extension / CLI smoke-test model — never forwarded upstream (no API key required).
+pub const LOCAL_VERIFY_MODEL: &str = "kotro-local-verify";
+
+const LOCAL_VERIFY_SSE: &[u8] = b"data: {\"id\":\"kotro-verify\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"kotro local verify ok\"}}]}\n\ndata: [DONE]\n\n";
 
 #[derive(Serialize)]
 struct ProblemDetails {
@@ -277,6 +283,7 @@ pub async fn handle_icon(State(_state): State<Arc<AppState>>) -> impl IntoRespon
 struct StreamGuard {
     metrics: crate::metrics::MetricsRegistry,
     provider: &'static str,
+    model: String,
     route: &'static str,
     stream_flag: bool,
     cache_status: &'static str,
@@ -290,6 +297,7 @@ impl StreamGuard {
             let elapsed = self.start_time.elapsed();
             self.metrics.record_request(
                 self.provider,
+                &self.model,
                 self.route,
                 self.stream_flag,
                 self.cache_status,
@@ -310,6 +318,7 @@ fn instrument_stream<S>(
     stream: S,
     metrics: crate::metrics::MetricsRegistry,
     provider: &'static str,
+    model: String,
     route: &'static str,
     stream_flag: bool,
     cache_status: &'static str,
@@ -321,6 +330,7 @@ where
     let mut guard = StreamGuard {
         metrics,
         provider,
+        model,
         route,
         stream_flag,
         cache_status,
@@ -352,7 +362,20 @@ fn create_primed_miss_stream(
 
         let base_url = get_upstream_url(&state, &pipeline_opts.model);
         let start_upstream = Instant::now();
-        let upstream_response = match post_with_failover(&state, &headers, base_url, &path, payload_bytes.clone()).await {
+        let auth_style = match pipeline_opts.format {
+            StreamFormat::OpenAI => UpstreamAuthStyle::Bearer,
+            StreamFormat::Anthropic => UpstreamAuthStyle::AnthropicXApiKey,
+        };
+        let upstream_response = match post_with_failover(
+            &state,
+            &headers,
+            base_url,
+            &path,
+            payload_bytes.clone(),
+            auth_style,
+        )
+        .await
+        {
             Ok(resp) => resp,
             Err(kind) => {
                 let provider_str = match pipeline_opts.format {
@@ -362,6 +385,7 @@ fn create_primed_miss_stream(
                 state.metrics.record_error(provider_str, kind);
                 let err_msg = match kind {
                     "timeout" => "data: {\"error\": \"Gateway timeout: Upstream provider did not respond in time\"}\n\n".to_string(),
+                    "misconfigured" => "data: {\"error\": \"KOTRO_BRIDGE_TOKEN set but KOTRO_UPSTREAM_API_KEY missing\"}\n\n".to_string(),
                     _ => "data: {\"error\": \"Upstream network failure\"}\n\n".to_string(),
                 };
                 yield Bytes::from(err_msg);
@@ -411,10 +435,22 @@ async fn post_with_failover(
     primary_base: &str,
     path: &str,
     body: Vec<u8>,
+    auth_style: UpstreamAuthStyle,
 ) -> Result<reqwest::Response, &'static str> {
+    let headers = match bridge_auth::prepare_upstream_headers(
+        state.bridge_token.as_deref(),
+        state.upstream_api_key.as_deref(),
+        headers,
+        auth_style,
+    ) {
+        Ok(h) => h,
+        Err(bridge_auth::BridgeAuthError::UpstreamKeyRequired) => return Err("misconfigured"),
+        Err(_) => return Err("upstream"),
+    };
+
     let primary = format!("{}{}", primary_base, path);
     let primary_req =
-        with_forwarded_headers(state.http_client.post(primary).body(body.clone()), headers);
+        with_forwarded_headers(state.http_client.post(primary).body(body.clone()), &headers);
 
     match tokio::time::timeout(UPSTREAM_TIMEOUT, primary_req.send()).await {
         Ok(Ok(resp)) if !upstream::should_failover(resp.status(), false) => return Ok(resp),
@@ -433,7 +469,7 @@ async fn post_with_failover(
 
     let fallback = format!("{}{}", fallback_base, path);
     let fallback_req =
-        with_forwarded_headers(state.http_client.post(fallback).body(body), headers);
+        with_forwarded_headers(state.http_client.post(fallback).body(body), &headers);
 
     match tokio::time::timeout(UPSTREAM_TIMEOUT, fallback_req.send()).await {
         Ok(Ok(resp)) => Ok(resp),
@@ -481,6 +517,12 @@ pub async fn handle_chat_completions(
     headers: HeaderMap,
     Json(payload): Json<Value>,
 ) -> Response {
+    if let Err(err) =
+        bridge_auth::require_bridge_token(state.bridge_token.as_deref(), &headers)
+    {
+        return err.into_response();
+    }
+
     let start_time = Instant::now();
     let mut req: ChatCompletionRequest = match serde_json::from_value(payload) {
         Ok(req) => req,
@@ -515,7 +557,8 @@ pub async fn handle_chat_completions(
     // ── Complexity-based model routing ───────────────────────────────────────
     // Route cheap/trivial requests to cheaper models before building unified_req
     // so the final model name propagates through the entire pipeline.
-    {
+    // Never rewrite the keyless smoke-test model.
+    if req.model != LOCAL_VERIFY_MODEL {
         let has_tool_calls = req.messages.iter().any(|m| m.tool_calls.is_some());
         match classify_complexity(&latest_user, req.messages.len(), has_tool_calls) {
             PromptComplexity::Nano => {
@@ -581,6 +624,7 @@ pub async fn handle_chat_completions(
             // dashboard shows injections with requests_total=0).
             state.metrics.record_request(
                 "openai",
+                &req.model,
                 "/v1/chat/completions",
                 req.stream,
                 "blocked",
@@ -661,6 +705,7 @@ pub async fn handle_chat_completions(
                 stream,
                 state.metrics.clone(),
                 "openai",
+                processed.model.clone(),
                 "/v1/chat/completions",
                 true,
                 "hit",
@@ -676,6 +721,20 @@ pub async fn handle_chat_completions(
             return resp;
         }
         info!(key = %cache_key, format = "openai", "cache miss");
+
+        // Keyless smoke test: store a fixture SSE and return MISS (second identical
+        // request hits the exact store). Never calls upstream.
+        if processed.model == LOCAL_VERIFY_MODEL {
+            return serve_local_verify_miss(
+                &state,
+                cache_key,
+                processed.model.clone(),
+                redaction_map,
+                injection_finding.as_ref(),
+                &scope_key,
+                start_time,
+            );
+        }
 
         if let Some(user_emb) =
             embed_off_thread(state.vector_encoder.clone(), latest_user.clone()).await
@@ -696,6 +755,7 @@ pub async fn handle_chat_completions(
                         stream,
                         state.metrics.clone(),
                         "openai",
+                        processed.model.clone(),
                         "/v1/chat/completions",
                         true,
                         "hit",
@@ -805,6 +865,12 @@ pub async fn handle_messages(
     headers: HeaderMap,
     Json(payload): Json<Value>,
 ) -> Response {
+    if let Err(err) =
+        bridge_auth::require_bridge_token(state.bridge_token.as_deref(), &headers)
+    {
+        return err.into_response();
+    }
+
     let start_time = Instant::now();
     let mut req: MessagesRequest = match serde_json::from_value(payload) {
         Ok(req) => req,
@@ -894,6 +960,7 @@ pub async fn handle_messages(
             state.metrics.record_injection_blocked();
             state.metrics.record_request(
                 "anthropic",
+                &req.model,
                 "/v1/messages",
                 req.stream,
                 "blocked",
@@ -971,6 +1038,7 @@ pub async fn handle_messages(
                 stream,
                 state.metrics.clone(),
                 "anthropic",
+                processed.model.clone(),
                 "/v1/messages",
                 true,
                 "hit",
@@ -1004,6 +1072,7 @@ pub async fn handle_messages(
                         stream,
                         state.metrics.clone(),
                         "anthropic",
+                        processed.model.clone(),
                         "/v1/messages",
                         true,
                         "hit",
@@ -1122,6 +1191,22 @@ pub async fn handle_passthrough(State(state): State<Arc<AppState>>, req: Request
         return StatusCode::NOT_FOUND.into_response();
     }
 
+    if let Err(err) =
+        bridge_auth::require_bridge_token(state.bridge_token.as_deref(), &headers)
+    {
+        return err.into_response();
+    }
+
+    let headers = match bridge_auth::prepare_upstream_headers(
+        state.bridge_token.as_deref(),
+        state.upstream_api_key.as_deref(),
+        &headers,
+        UpstreamAuthStyle::Bearer,
+    ) {
+        Ok(h) => h,
+        Err(err) => return err.into_response(),
+    };
+
     let upstream_endpoint = format!("{}{}", state.upstream_url, uri);
     let upstream_req = with_forwarded_headers(
         state.http_client.request(method, upstream_endpoint).body(body),
@@ -1219,6 +1304,7 @@ async fn forward_provider(
             miss_stream,
             state.metrics.clone(),
             opts.provider,
+            opts.model.clone(),
             opts.path,
             true,
             "miss",
@@ -1230,10 +1316,20 @@ async fn forward_provider(
 
     let base_url = get_upstream_url(state, &opts.model);
     let start_upstream = Instant::now();
-    let upstream_response = match post_with_failover(state, headers, base_url, opts.path, opts.payload_bytes).await {
+    let auth_style = match opts.format {
+        StreamFormat::OpenAI => UpstreamAuthStyle::Bearer,
+        StreamFormat::Anthropic => UpstreamAuthStyle::AnthropicXApiKey,
+    };
+    let upstream_response =
+        match post_with_failover(state, headers, base_url, opts.path, opts.payload_bytes, auth_style)
+            .await
+        {
         Ok(resp) => resp,
         Err(kind) => {
             state.metrics.record_error(opts.provider, kind);
+            if kind == "misconfigured" {
+                return bridge_auth::BridgeAuthError::UpstreamKeyRequired.into_response();
+            }
             return problem_response(
                 if kind == "timeout" {
                     StatusCode::GATEWAY_TIMEOUT
@@ -1261,7 +1357,7 @@ async fn forward_provider(
 
     let full_bytes = upstream_response.bytes().await.unwrap_or_default();
     let elapsed = opts.start_time.elapsed();
-    state.metrics.record_request(opts.provider, opts.path, false, "miss", elapsed);
+    state.metrics.record_request(opts.provider, &opts.model, opts.path, false, "miss", elapsed);
     (StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::OK), full_bytes).into_response()
 }
 
@@ -1281,6 +1377,70 @@ where
     response
 }
 
+/// First-request path for `kotro-local-verify`: sync-store fixture SSE, stream as MISS.
+fn serve_local_verify_miss(
+    state: &Arc<AppState>,
+    cache_key: String,
+    model: String,
+    redaction_map: Option<Arc<RedactionMap>>,
+    injection_finding: Option<&InjectionFinding>,
+    scope_key: &str,
+    start_time: Instant,
+) -> Response {
+    let raw_sse = LOCAL_VERIFY_SSE.to_vec();
+    let model_label = model.clone();
+    let entry = Entry {
+        key: cache_key,
+        raw_sse: raw_sse.clone(),
+        model,
+        created_at: SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64,
+    };
+    if let Err(err) = state.store.put(entry) {
+        error!(error = %err, "local verify cache put failed");
+        return problem_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Cache Store Failed",
+            &format!("kotro-local-verify could not write cache entry: {err}"),
+        );
+    }
+    state.metrics.record_cache_miss("openai");
+    state.metrics.record_cache_store("openai");
+    if let Ok(count) = state.store.count() {
+        state.metrics.set_cache_entries(count);
+    }
+
+    let stream = create_cached_replay_stream(
+        raw_sse,
+        redaction_map,
+        Duration::ZERO,
+        StreamFormat::OpenAI,
+        state.metrics.clone(),
+    );
+    // Replay helper is used for framing only — header must stay MISS on first write.
+    let instrumented = instrument_stream(
+        stream,
+        state.metrics.clone(),
+        "openai",
+        model_label,
+        "/v1/chat/completions",
+        true,
+        "miss",
+        start_time,
+    );
+    let mut resp = sse_stream_response(instrumented, false);
+    attach_guardrail_headers(
+        &mut resp,
+        injection_finding,
+        state.budget.current(scope_key),
+        &state.budget,
+        scope_key,
+    );
+    resp
+}
+
 
 async fn proxy_response(upstream: reqwest::Response) -> Response {
     let status =
@@ -1297,6 +1457,12 @@ fn with_forwarded_headers(
     mut req: reqwest::RequestBuilder,
     src: &HeaderMap,
 ) -> reqwest::RequestBuilder {
+    // Upstream OpenAI-compatible APIs (DeepSeek, OpenAI, …) require JSON.
+    // `.body(bytes)` does not set this; without it a *valid* API key gets
+    // HTTP 415 "Expected request with Content-Type: application/json" while
+    // an invalid key fails earlier with 401 — which looks like a client bug.
+    req = req.header(CONTENT_TYPE, "application/json");
+
     if let Some(auth) = src.get("authorization") {
         if let Ok(value) = auth.to_str() {
             req = req.header(AUTHORIZATION, value);

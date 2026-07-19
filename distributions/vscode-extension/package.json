@@ -66,6 +66,16 @@
           "default": "https://api.openai.com",
           "description": "Upstream provider base URL (KOTRO_UPSTREAM_URL)."
         },
+        "kotrolabs.bridgeToken": {
+          "type": "string",
+          "default": "",
+          "description": "When set (KOTRO_BRIDGE_TOKEN), LLM routes require this token. Put the same value in Cursor’s OpenAI API key field when using a public tunnel. Leave empty for localhost-only clients."
+        },
+        "kotrolabs.upstreamApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Provider API key injected upstream when bridgeToken is set (KOTRO_UPSTREAM_API_KEY). Do not put this in Cursor’s API key field when using bridge auth."
+        },
         "kotrolabs.cacheDb": {
           "type": "string",
           "default": "",
@@ -106,6 +116,11 @@
       {
         "command": "kotrolabs.openDashboard",
         "title": "Kotro: Open Dashboard",
+        "category": "Kotro"
+      },
+      {
+        "command": "kotro.statusBarMenu",
+        "title": "Kotro: Status Menu",
         "category": "Kotro"
       },
       {

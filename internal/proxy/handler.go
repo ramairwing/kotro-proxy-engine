@@ -140,6 +140,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	recordScopeMetrics(h.opts.Metrics, scopeMeta)
 
 	processed, cacheSource, redactionMap := h.applyOpenAIMiddleware(scope, req)
+	obs.setModel(processed.Model)
 	recordRedactionMetrics(h.opts.Metrics, redactionMap)
 	cacheKey := h.openAICacheKey(scope, cacheSource)
 

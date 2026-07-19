@@ -36,7 +36,8 @@ Honest constraints:
 - Kotro sits on the HTTP path to the provider, not raw MCP stdio.
 - Cursor Chat/Agent Override Base URL is called from *Cursor's cloud*, which
   blocks localhost (SSRF). Use Continue/Cline/Claude Code for direct localhost,
-  or a temporary HTTPS tunnel / upcoming "Cursor Bridge" for Cursor Chat.
+  or a temporary HTTPS tunnel plus bridge auth (`kotrolabs.bridgeToken` +
+  `kotrolabs.upstreamApiKey`) / upcoming one-command "Cursor Bridge".
   Verify Cache in the extension proves the sidecar without any of that.
 
 Repro (no API key — mock upstream):

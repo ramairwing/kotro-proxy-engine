@@ -19,6 +19,8 @@ function extensionConfig() {
     listenAddr: cfg.get<string>('listenAddr', ':8080'),
     metricsAddr: cfg.get<string>('metricsAddr', '127.0.0.1:9090'),
     upstreamUrl: cfg.get<string>('upstreamUrl', 'https://api.openai.com'),
+    bridgeToken: cfg.get<string>('bridgeToken', '').trim(),
+    upstreamApiKey: cfg.get<string>('upstreamApiKey', '').trim(),
     cacheDb: cfg.get<string>('cacheDb', ''),
     enableCache: cfg.get<boolean>('enableCache', true),
     enableRedaction: cfg.get<boolean>('enableRedaction', true),
@@ -36,6 +38,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const settings = extensionConfig();
   statusBar = new ProxyStatusBar(settings.listenAddr, settings.metricsAddr);
   context.subscriptions.push(statusBar);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('kotro.statusBarMenu', async () => {
+      await statusBar?.showMenu();
+    }),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('kotrolabs.openDashboard', () => {
@@ -58,6 +66,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const result = await verifyCache(settings.listenAddr, {
         context,
         upstreamUrl: settings.upstreamUrl,
+        bridgeToken: settings.bridgeToken || undefined,
+        upstreamApiKey: settings.upstreamApiKey || undefined,
       });
       output.appendLine(result.detail);
 
@@ -95,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('kotro.connectCursor', async () => {
       const pick = await vscode.window.showInformationMessage(
-        'Cursor Chat cannot call localhost (Cursor cloud SSRF). Verify Cache / Continue / Cline / Claude Code use localhost directly. For Cursor Chat you need an HTTPS tunnel — open the setup guide?',
+        'Cursor Chat needs an HTTPS tunnel (cloud blocks localhost). Set kotrolabs.bridgeToken + kotrolabs.upstreamApiKey, put the bridge token in Cursor’s API key field, and use the tunnel Base URL. Open the setup guide?',
         'Yes, open setup guide',
         'Use Continue.dev instead',
         'Verify Cache',
@@ -136,23 +146,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   fs.mkdirSync(path.dirname(cacheDb), { recursive: true });
 
+  if (settings.bridgeToken && !settings.upstreamApiKey) {
+    output.appendLine(
+      'Warning: kotrolabs.bridgeToken is set without kotrolabs.upstreamApiKey — upstream LLM calls will fail with 503 until the provider key is set.',
+    );
+  }
+
+  const sidecarEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    KOTRO_PROFILE: settings.profile === 'custom' ? '' : settings.profile,
+    KOTRO_LISTEN_ADDR: settings.listenAddr,
+    KOTRO_METRICS_ADDR: addrForEnv(settings.metricsAddr),
+    KOTRO_UPSTREAM_URL: settings.upstreamUrl,
+    KOTRO_CACHE_DB: cacheDb,
+    KOTRO_ENABLE_CACHE: String(settings.enableCache),
+    KOTRO_ENABLE_REDACTION: String(settings.enableRedaction),
+    KOTRO_ENABLE_COMPRESSION: String(settings.enableCompression),
+    KOTRO_ENABLE_SHRINK: String(settings.enableShrink),
+    KOTRO_FALLBACK_URL: settings.fallbackUrl,
+    KOTRO_FALLBACK_MODEL: settings.fallbackModel,
+    KOTRO_ENABLE_METRICS: String(settings.enableMetrics),
+    RUST_LOG: process.env.RUST_LOG ?? 'info',
+  };
+  if (settings.bridgeToken) {
+    sidecarEnv.KOTRO_BRIDGE_TOKEN = settings.bridgeToken;
+  }
+  if (settings.upstreamApiKey) {
+    sidecarEnv.KOTRO_UPSTREAM_API_KEY = settings.upstreamApiKey;
+  }
+
   sidecarProcess = spawn(binary.path, [], {
-    env: {
-      ...process.env,
-      KOTRO_PROFILE: settings.profile === 'custom' ? '' : settings.profile,
-      KOTRO_LISTEN_ADDR: settings.listenAddr,
-      KOTRO_METRICS_ADDR: addrForEnv(settings.metricsAddr),
-      KOTRO_UPSTREAM_URL: settings.upstreamUrl,
-      KOTRO_CACHE_DB: cacheDb,
-      KOTRO_ENABLE_CACHE: String(settings.enableCache),
-      KOTRO_ENABLE_REDACTION: String(settings.enableRedaction),
-      KOTRO_ENABLE_COMPRESSION: String(settings.enableCompression),
-      KOTRO_ENABLE_SHRINK: String(settings.enableShrink),
-      KOTRO_FALLBACK_URL: settings.fallbackUrl,
-      KOTRO_FALLBACK_MODEL: settings.fallbackModel,
-      KOTRO_ENABLE_METRICS: String(settings.enableMetrics),
-      RUST_LOG: process.env.RUST_LOG ?? 'info',
-    },
+    env: sidecarEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
