@@ -20,8 +20,9 @@ Backup if you want a softer security lead:
 ## Body
 
 ```
-I built a local proxy that sits between Cursor / Claude Code and the LLM provider.
-One ~15MB Rust binary on localhost — no SaaS, nothing else in the request path.
+I built a local proxy that sits between Claude Code / Continue / Cline (and Cursor
+*via an HTTPS bridge*) and the LLM provider.
+One ~15MB Rust binary on localhost — no SaaS required for the sidecar itself.
 
 The problem I kept hitting: poisoned MCP / tool / file text rides into the *next*
 /v1/messages or /v1/chat/completions body. The model never sees a separate "MCP
@@ -31,8 +32,12 @@ Default: warn (x-kotro-injection-warning) + dashboard "Injections Detected".
 Hard-block mode (KOTRO_INJECTION_BLOCK=true): HTTP 400 + "Blocked" count.
 (Budget hard-stops are HTTP 429 — different path.)
 
-Honest constraint: Kotro sits on the HTTP path to the provider, not raw MCP stdio.
-When the agent folds a tool/file result into the next API call, the scanner sees it.
+Honest constraints:
+- Kotro sits on the HTTP path to the provider, not raw MCP stdio.
+- Cursor Chat/Agent Override Base URL is called from *Cursor's cloud*, which
+  blocks localhost (SSRF). Use Continue/Cline/Claude Code for direct localhost,
+  or a temporary HTTPS tunnel / upcoming "Cursor Bridge" for Cursor Chat.
+  Verify Cache in the extension proves the sidecar without any of that.
 
 Repro (no API key — mock upstream):
   git clone https://github.com/kotro-labs/kotro-proxy-engine
@@ -41,7 +46,7 @@ Repro (no API key — mock upstream):
 
 ~78s narrated demo + dashboard screenshot are in the README / docs/launch/assets/.
 
-Secondary habit (same proxy): exact-match cache cut a real Cursor day ~68%
+Secondary habit (same proxy): exact-match cache cut a real agent day ~68%
 (make demo-savings). Also redacts secrets outbound and restores them on the stream.
 Circuit breaker trips after identical tool spam; optional session token budget → 429.
 
@@ -50,7 +55,7 @@ Install:
   # or: brew install kotro-labs/tap/kotro-proxy
   # or: npm i -g @kotro-labs/proxy-engine
   kotro-proxy
-  # Point the agent base URL at http://127.0.0.1:8080/v1
+  # Point agents that call from YOUR machine at http://127.0.0.1:8080/v1
 
 MIT. Rust (Axum/Tokio). Go reference is frozen.
 

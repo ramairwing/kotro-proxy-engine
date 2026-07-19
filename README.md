@@ -38,16 +38,16 @@
 
 ### Who this is for
 
-- You run **Cursor**, **Claude Code**, or any **OpenAI / Anthropic-compatible** agent with MCP tools
-- You want **injection scan + secret redaction** without sending traffic through a third-party gateway
-- You also want **cache / budget / circuit breaker** so runaway agents don’t bill you overnight
+- You run **Claude Code**, **Continue.dev**, **Cline**, or any agent that can set a **localhost** base URL
+- You use **Cursor** and want a local sidecar for Verify Cache / dashboard now — and Cursor Chat via a temporary HTTPS bridge (Cursor’s cloud cannot call `localhost`)
+- You want **injection scan + secret redaction** on the provider HTTP path, plus **cache / budget / circuit breaker**
 
 ### 30-second install
 
 ```bash
 curl -sL https://raw.githubusercontent.com/kotro-labs/kotro-proxy-engine/main/scripts/install.sh | bash
 kotro-proxy
-# Point your agent base URL at http://127.0.0.1:8080/v1
+# Point agents that call from YOUR machine at http://127.0.0.1:8080/v1
 # Dashboard: http://127.0.0.1:9090/dashboard
 ```
 
@@ -56,6 +56,21 @@ kotro-proxy
 | **Homebrew** | `brew install kotro-labs/tap/kotro-proxy` |
 | **npm** | `npm i -g @kotro-labs/proxy-engine` |
 | **Cursor / VS Code** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) (SHA-256–verified download; Setup Wizard is opt-in) |
+
+### Which client works how
+
+Cursor **Chat / Agent** does **not** dial your laptop. Override Base URL is invoked from **Cursor’s cloud**, which **blocks private IPs** (`localhost` → *Access to private networks is forbidden*). That is Cursor’s SSRF policy — not a Kotro bug.
+
+| Client | Calls from | Works with Kotro | Setup |
+|--------|------------|------------------|--------|
+| **Continue.dev** | IDE process | ✅ Direct `localhost` | Setup Wizard (opt-in) |
+| **Cline** | IDE process | ✅ Direct `localhost` | Setup Wizard (opt-in) |
+| **Claude Code** | Your terminal | ✅ Direct `localhost` | `ANTHROPIC_BASE_URL=http://localhost:8080` |
+| **curl / scripts / SDKs** | Your machine | ✅ Direct `localhost` | `OPENAI_BASE_URL=http://127.0.0.1:8080/v1` |
+| **Kotro: Verify Cache** | Extension host | ✅ Direct `localhost` | Command Palette — no BYOK needed |
+| **Cursor Chat / Agent** | Cursor cloud | ✅ Via **HTTPS bridge** only | Temporary tunnel today; **Enable Cursor Bridge** in 0.7 — [guide](docs/guides/CURSOR-FIRST-RUN.md) |
+
+**Pitch:** For Continue, Cline, and Claude Code — direct localhost, minimal setup. For Cursor Chat — you need a public HTTPS URL (tunnel/bridge); Verify Cache still proves the sidecar without that.
 
 ### Without Kotro → with Kotro
 
@@ -80,12 +95,15 @@ make demo-injection    # warn → HTTP 400 block + security tiles
 
 ## Point your agent at it
 
-### Cursor
+### Cursor (extension first)
 
-1. **Settings → Models**
-2. Set **OpenAI Base URL** to `http://localhost:8080/v1`
-3. Keep your provider API key
-4. Optional: Command Palette → **Kotro: Verify Cache** (MISS then HIT)
+1. Install the [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine); wait until status ≠ `Kotro: offline`
+2. **Cmd+Shift+P** → **Kotro: Verify Cache** → expect MISS then HIT  
+3. Open dashboard: `http://127.0.0.1:9090/dashboard`
+
+**Cursor Chat** cannot use `http://localhost:8080/v1`. Use the [Cursor first-run guide](docs/guides/CURSOR-FIRST-RUN.md) (Cloudflare quick tunnel today). Planned: one-command **Kotro: Enable Cursor Bridge**.
+
+Prefer fully local routing inside the editor? Use **Continue.dev** or **Cline** (Setup Wizard) instead of Cursor’s built-in Chat.
 
 ### Claude Code
 
@@ -94,7 +112,7 @@ KOTRO_UPSTREAM_URL=https://api.anthropic.com kotro-proxy &
 ANTHROPIC_BASE_URL=http://localhost:8080 claude
 ```
 
-### OpenAI-compatible (Aider, SDKs, …)
+### OpenAI-compatible (Continue, Cline, Aider, SDKs, …)
 
 ```bash
 OPENAI_BASE_URL=http://localhost:8080/v1 your-tool

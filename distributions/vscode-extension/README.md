@@ -59,43 +59,66 @@ You can decline both prompts and configure agents yourself.
 
 ## Quick start (Cursor / VS Code)
 
-1. Set your provider API key in the environment or your agent config.
-2. Configure the extension (optional):
+**Full walkthrough:** [Cursor first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md)
 
-   | Setting | Default | Maps to |
-   |---------|---------|---------|
-   | `kotrolabs.listenAddr` | `:8080` | `KOTRO_LISTEN_ADDR` |
-   | `kotrolabs.metricsAddr` | `127.0.0.1:9090` | `KOTRO_METRICS_ADDR` |
-   | `kotrolabs.upstreamUrl` | `https://api.openai.com` | `KOTRO_UPSTREAM_URL` |
-   | `kotrolabs.enableCache` | `true` | `KOTRO_ENABLE_CACHE` |
-   | `kotrolabs.enableRedaction` | `true` | `KOTRO_ENABLE_REDACTION` |
-   | `kotrolabs.enableCompression` | `true` | `KOTRO_ENABLE_COMPRESSION` |
-   | `kotrolabs.enableMetrics` | `true` | `KOTRO_ENABLE_METRICS` |
+### Default path (works today, no tunnel)
 
-3. Click the **Kotro** item in the status bar to open the dashboard.
+1. Confirm binary download; wait until status ≠ `Kotro: offline`
+2. **Kotro: Verify Cache** → MISS then HIT
+3. Optional: **Kotro: Open Dashboard**
+4. Optional: **Setup Wizard** for **Continue.dev / Cline** (direct `localhost` — these call from the IDE process)
+
+### Cursor Chat / Agent (cannot use localhost)
+
+Cursor’s Override Base URL is called from **Cursor’s cloud**, which **blocks** `localhost` (*Access to private networks is forbidden*).
+
+Today: temporary HTTPS tunnel — see the [first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md#quick-tunnel-for-cursor-chat-temporary).  
+Planned (0.7): **Kotro: Enable Cursor Bridge** (managed tunnel + stop on deactivate).
+
+| Setting | Default | Maps to |
+|---------|---------|---------|
+| `kotrolabs.listenAddr` | `:8080` | `KOTRO_LISTEN_ADDR` |
+| `kotrolabs.metricsAddr` | `127.0.0.1:9090` | `KOTRO_METRICS_ADDR` |
+| `kotrolabs.upstreamUrl` | `https://api.openai.com` | `KOTRO_UPSTREAM_URL` |
+| `kotrolabs.enableCache` | `true` | `KOTRO_ENABLE_CACHE` |
+| `kotrolabs.enableRedaction` | `true` | `KOTRO_ENABLE_REDACTION` |
+| `kotrolabs.enableCompression` | `true` | `KOTRO_ENABLE_COMPRESSION` |
+| `kotrolabs.enableMetrics` | `true` | `KOTRO_ENABLE_METRICS` |
 
 ## Verify it works (2 minutes)
 
-The extension **starts** the proxy. Your IDE must **send API traffic** to it.
-
 | Step | Action | Success signal |
 |------|--------|----------------|
-| 1 | **Cmd+Shift+P** → **Kotro: Verify Cache** | Notification: `MISS` then `HIT` |
-| 2 | Open dashboard (`http://127.0.0.1:9090/dashboard`) | Recent Traffic shows `miss` then `hit` on `/v1/chat/completions` |
-| 3 | (Optional) Cursor **Settings → Models** → OpenAI Base URL = `http://localhost:8080/v1` | Chat traffic appears in dashboard |
+| 1 | Status bar ≠ `offline` | Sidecar bound |
+| 2 | **Kotro: Verify Cache** | `MISS` then `HIT` |
+| 3 | Dashboard `http://127.0.0.1:9090/dashboard` | Recent traffic shows miss/hit |
+
+**Cursor Chat** is a separate step (HTTPS bridge) — not required to prove Kotro works.
 
 **Common mistakes**
 
-- Reading the **chat reply** — that is the model answer, not proxy logs.
-- Opening `http://localhost:8080/v1/` in a browser — API only; shows `BYPASS`, not cache.
-- Using **Kotro: Show Proxy Logs** for HIT/MISS — that channel shows startup lines only; use Verify Cache or the dashboard.
+- Setting Cursor Base URL to `http://localhost:8080/v1` → *Access to private networks is forbidden*
+- Using **Auto** (bypasses custom Base URL even with a tunnel)
+- Mismatched `kotrolabs.upstreamUrl` vs provider key
+- Running Verify Cache while logs show `AddrInUse`
+
+## Troubleshooting: `Kotro: offline` / Address already in use
+
+If **Show Proxy Logs** contains `AddrInUse` / `Address already in use` and `Core engine exited with code 1`, another process owns port **8080**.
+
+```bash
+lsof -nP -iTCP:8080 -sTCP:LISTEN
+kill <PID>          # or change kotrolabs.listenAddr and the Cursor Base URL
+```
+
+Then **Developer: Reload Window**. Full steps: [§5 in the first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md#5-port-already-in-use-kotro-offline).
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | **Kotro: Setup Wizard** | Consentful Cline / Continue / Cursor routing setup |
-| **Kotro: Verify Cache** | Sends two identical test requests; confirms cache HIT |
+| **Kotro: Verify Cache** | Keyless MISS→HIT via `kotro-local-verify` (or provider key fallback) |
 | **Kotro: Connect Cursor** | Wizard for routing Cursor BYOK chat through the proxy |
 | **Kotro: Setup Continue.dev Config** | Alias for Setup Wizard |
 | **Kotro: Open Dashboard** | Opens the local operator UI |
@@ -116,7 +139,8 @@ Operator   →  127.0.0.1:9090/dashboard  (telemetry — loopback only by defaul
 
 ## Documentation
 
-Full engine docs, threat model, and observability spec: [github.com/kotro-labs/kotro-proxy-engine](https://github.com/kotro-labs/kotro-proxy-engine)
+- **[Cursor first-run guide](https://github.com/kotro-labs/kotro-proxy-engine/blob/main/docs/guides/CURSOR-FIRST-RUN.md)** — BYOK, offline / port conflicts, Verify Cache
+- Full engine docs, threat model, and observability: [github.com/kotro-labs/kotro-proxy-engine](https://github.com/kotro-labs/kotro-proxy-engine)
 
 ## License
 
