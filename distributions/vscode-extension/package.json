@@ -1,8 +1,8 @@
 {
   "name": "kotro-proxy-engine",
   "displayName": "Kotro Proxy Engine",
-  "description": "Transparent IDE sidecar for the Kotro semantic caching LLM proxy.",
-  "version": "0.3.0",
+  "description": "Local Kotro LLM proxy sidecar — downloads a SHA-256–verified binary and starts it on localhost. Agent routing is opt-in via Setup Wizard.",
+  "version": "0.6.1",
   "publisher": "kotrolabs",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -116,6 +116,11 @@
       {
         "command": "kotrolabs.verifyCache",
         "title": "Kotro: Verify Cache",
+        "category": "Kotro"
+      },
+      {
+        "command": "kotro.setupWizard",
+        "title": "Kotro: Setup Wizard",
         "category": "Kotro"
       },
       {

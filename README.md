@@ -55,7 +55,7 @@ kotro-proxy
 |------|--|
 | **Homebrew** | `brew install kotro-labs/tap/kotro-proxy` |
 | **npm** | `npm i -g @kotro-labs/proxy-engine` |
-| **Cursor / VS Code** | [Zero-friction Extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) (auto-downloads proxy and configures IDE) |
+| **Cursor / VS Code** | [Marketplace extension](https://marketplace.visualstudio.com/items?itemName=kotrolabs.kotro-proxy-engine) (SHA-256–verified download; Setup Wizard is opt-in) |
 
 ### Without Kotro → with Kotro
 
@@ -74,7 +74,7 @@ make demo-savings      # ~68% savings story + secret redaction
 make demo-injection    # warn → HTTP 400 block + security tiles
 ```
 
-> **Honest path:** Kotro sits on the **HTTP path** to the provider — not raw MCP stdio. When an agent includes poisoned tool/file content in the next `/v1/chat/completions` or `/v1/messages` body, the scanner sees it.
+> **Why HTTP path (not MCP stdio):** Stdio MCP firewalls wrap one client↔server hop at a time. Kotro sits on the **provider HTTP layer**, so the same scan covers Cursor, Claude Code, Aider, and any OpenAI/Anthropic-compatible agent — without patching each MCP server or client. When an agent folds poisoned tool/file content into the next `/v1/chat/completions` or `/v1/messages` body, the scanner sees it.
 
 ---
 

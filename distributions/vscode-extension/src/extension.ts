@@ -2,12 +2,11 @@ import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { binaryBasename } from './binary-target';
 import { ProxyStatusBar } from './status-bar';
 import { addrForEnv, listenBaseUrl } from './listen-url';
 import { verifyCache } from './verify-cache';
 import { ensureBinary } from './downloader';
-import { autoConfigureAgents } from './auto-router';
+import { runSetupWizard } from './setup-wizard';
 
 let sidecarProcess: ChildProcess | null = null;
 let statusBar: ProxyStatusBar | null = null;
@@ -85,18 +84,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('kotro.setupWizard', async () => {
+      await runSetupWizard(output);
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('kotro.connectCursor', async () => {
       const pick = await vscode.window.showInformationMessage(
         'Cursor Auto mode completely bypasses local proxies. To use Kotro caching, you must configure a custom Base URL. Would you like to configure Kotro for Cursor Chat now?',
         'Yes, configure BYOK',
         'Use Continue.dev instead',
-        'Learn More'
+        'Learn More',
       );
-      
+
       if (pick === 'Yes, configure BYOK') {
         const pick2 = await vscode.window.showInformationMessage(
           '1. Open Cursor Settings -> Models\n2. Enable "Override OpenAI Base URL" and set it to: http://localhost:8080/v1\n3. Add your API key\n4. Select a specific model (e.g. gpt-4o), do NOT use Auto.',
-          'Verify Cache'
+          'Verify Cache',
         );
         if (pick2 === 'Verify Cache') {
           void vscode.commands.executeCommand('kotrolabs.verifyCache');
@@ -104,73 +109,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       } else if (pick === 'Use Continue.dev instead') {
         void vscode.commands.executeCommand('kotro.setupContinue');
       } else if (pick === 'Learn More') {
-        void vscode.env.openExternal(vscode.Uri.parse('https://github.com/kotro-labs/kotro-proxy-engine/blob/main/distributions/vscode-extension/README.md#verify-it-works-2-minutes'));
+        void vscode.env.openExternal(
+          vscode.Uri.parse(
+            'https://github.com/kotro-labs/kotro-proxy-engine/blob/main/distributions/vscode-extension/README.md#verify-it-works-2-minutes',
+          ),
+        );
       }
-    })
+    }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('kotro.setupContinue', async () => {
-      const homeDir = process.env.HOME || process.env.USERPROFILE;
-      if (!homeDir) {
-        void vscode.window.showErrorMessage('Could not determine home directory.');
-        return;
-      }
-      const configPath = path.join(homeDir, '.continue', 'config.json');
-      
-      if (!fs.existsSync(configPath)) {
-        void vscode.window.showErrorMessage('Continue config not found. Please install Continue.dev first.');
-        return;
-      }
-      
-      try {
-        const content = fs.readFileSync(configPath, 'utf8');
-        const config = JSON.parse(content);
-        if (!config.models) {
-          config.models = [];
-        }
-        
-        const existing = config.models.find((m: any) => m.title === 'Kotro Local Proxy');
-        if (existing) {
-          void vscode.window.showInformationMessage('Kotro is already configured in your Continue settings.');
-          return;
-        }
-        
-        config.models.push({
-          title: "Kotro Local Proxy",
-          provider: "openai",
-          model: "gpt-4o",
-          apiKey: "YOUR_API_KEY",
-          apiBase: "http://localhost:8080/v1"
-        });
-        
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        void vscode.window.showInformationMessage('Success! Continue.dev is now configured to route through Kotro.');
-      } catch (err: any) {
-        void vscode.window.showErrorMessage(`Failed to update Continue config: ${err.message}`);
-      }
-    })
+      // Thin alias — full consent flow lives in Setup Wizard.
+      await runSetupWizard(output);
+    }),
   );
 
-  const binaryPath = await ensureBinary(context, output);
+  const binary = await ensureBinary(context, output);
 
-  if (!binaryPath) {
-    const msg = `Failed to download or locate Kotro Labs binary.`;
+  if (!binary) {
+    const msg = 'Failed to download, verify, or locate Kotro Labs binary.';
     output.appendLine(msg);
     void vscode.window.showErrorMessage(msg);
     return;
   }
-  
-  // Auto-configure popular AI agents
-  await autoConfigureAgents(context, output);
 
   const cacheDb =
-    settings.cacheDb ||
-    path.join(context.globalStorageUri.fsPath, 'kotro-cache.db');
+    settings.cacheDb || path.join(context.globalStorageUri.fsPath, 'kotro-cache.db');
 
   fs.mkdirSync(path.dirname(cacheDb), { recursive: true });
 
-  sidecarProcess = spawn(binaryPath, [], {
+  sidecarProcess = spawn(binary.path, [], {
     env: {
       ...process.env,
       KOTRO_PROFILE: settings.profile === 'custom' ? '' : settings.profile,
@@ -218,14 +187,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   statusBar.markRunning();
 
   const proxyBase = `${listenBaseUrl(settings.listenAddr)}/v1`;
+  const runningMsg = binary.freshlyDownloaded
+    ? `Binary installed and verified. Kotro proxy is running at ${proxyBase}.`
+    : `Kotro proxy is running at ${proxyBase}.`;
+
   void vscode.window
     .showInformationMessage(
-      `Kotro proxy is running. Route your IDE to ${proxyBase} — then run "Kotro: Verify Cache" to confirm.`,
+      `${runningMsg} Run Setup Wizard to configure Cline / Continue.dev?`,
+      'Run Wizard',
+      'Later',
       'Verify Cache',
       'Open Dashboard',
     )
     .then((pick) => {
-      if (pick === 'Verify Cache') {
+      if (pick === 'Run Wizard') {
+        void vscode.commands.executeCommand('kotro.setupWizard');
+      } else if (pick === 'Verify Cache') {
         void vscode.commands.executeCommand('kotrolabs.verifyCache');
       } else if (pick === 'Open Dashboard') {
         void vscode.commands.executeCommand('kotrolabs.openDashboard');

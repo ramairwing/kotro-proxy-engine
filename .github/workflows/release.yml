@@ -149,8 +149,12 @@ jobs:
           done
           
           cd "$RELEASE_DIR"
+          # Include archives + bare binaries + Windows exe so clients can verify
+          # either form. The VS Code extension verifies the .tar.gz / .exe entry.
           sha256sum kotro-proxy-* > checksums.txt
           cd -
+          echo "=== checksums.txt ==="
+          cat "$RELEASE_DIR/checksums.txt"
 
           ls -la "$EXT_BIN"
           ls -la "$RELEASE_DIR"
